@@ -1,7 +1,8 @@
 import numpy as np
-import cv2
+import cv2 as cv
 from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtCore import Qt
+import pytesseract
 
 
 class OpenCVToQtAdapter:
@@ -20,11 +21,11 @@ class OpenCVToQtAdapter:
         """
         # Конвертируем цветовое пространство при необходимости
         if swap_rgb and len(cv_img.shape) == 3 and cv_img.shape[2] == 3:
-            cv_img = cv2.cvtColor(cv_img, cv2.COLOR_BGR2RGB)
+            cv_img = cv.cvtColor(cv_img, cv.COLOR_BGR2RGB)
 
         # Зеркальное отражение при необходимости
         if mirror:
-            cv_img = cv2.flip(cv_img, 1)
+            cv_img = cv.flip(cv_img, 1)
 
         # Определяем формат QImage в зависимости от типа изображения
         if len(cv_img.shape) == 2:
@@ -48,3 +49,29 @@ class OpenCVToQtAdapter:
         # Создаем QImage и преобразуем в QPixmap
         q_img = QImage(cv_img.data, w, h, bytes_per_line, qt_format)
         return QPixmap.fromImage(q_img)
+
+    @staticmethod
+    def process_calibration_image(image):
+        pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+        height, width = image.shape
+
+        # Обрезаем нижние 10% и правые 32% изображения
+        cropped = image[int(height * 0.9):height, int(width * 0.68):width]
+
+        # Бинаризация
+        _, thresh = cv.threshold(cropped, 200, 255, cv.THRESH_BINARY)
+
+        # Ищем контуры
+        contours, _ = cv.findContours(thresh, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
+
+        max_length = 0  # Максимальная длина стороны
+
+        for cnt in contours:
+            rect = cv.minAreaRect(cnt)
+            w, h = rect[1]
+
+            if w > max_length:
+                max_length = w
+        text = pytesseract.image_to_string(thresh)
+
+        return max_length, text.split()[0:2]

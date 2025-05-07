@@ -1,3 +1,4 @@
+
 from PySide6.QtCore import (QCoreApplication, QMetaObject, QRect,
                             Qt)
 from PySide6.QtGui import (QAction)
@@ -13,6 +14,8 @@ class Ui_MainWindow(object):
         self.actionCalculate_the_area.setObjectName(u"actionCalculate_the_area")
         self.actionOpen = QAction(MainWindow)
         self.actionOpen.setObjectName(u"actionOpen")
+        self.actionOpen_Calibration_Image = QAction(MainWindow)
+        self.actionOpen_Calibration_Image.setObjectName(u"actionOpen_Calibration_Image")
         self.centralwidget = QWidget(MainWindow)
         self.centralwidget.setObjectName(u"centralwidget")
         self.verticalLayoutWidget = QWidget(self.centralwidget)
@@ -101,6 +104,7 @@ class Ui_MainWindow(object):
         self.menubar.addAction(self.menuFunctions.menuAction())
         self.menuFunctions.addAction(self.actionCalculate_the_area)
         self.menuFIle.addAction(self.actionOpen)
+        self.menuFIle.addAction(self.actionOpen_Calibration_Image)
 
         self.retranslateUi(MainWindow)
 
@@ -112,6 +116,8 @@ class Ui_MainWindow(object):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Thingie", None))
         self.actionCalculate_the_area.setText(QCoreApplication.translate("MainWindow", u"Calculate the area", None))
         self.actionOpen.setText(QCoreApplication.translate("MainWindow", u"Open", None))
+        self.actionOpen_Calibration_Image.setText(
+            QCoreApplication.translate("MainWindow", u"Open Calibration Image", None))
         self.pixmap_label.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
         self.label_2.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
         self.label_3.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))

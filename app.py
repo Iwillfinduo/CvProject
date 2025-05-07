@@ -29,6 +29,7 @@ class ImageViewer(QMainWindow):
         self.ui.actionOpen.triggered.connect(self._open_file)
         self.ui.actionCalculate_the_area.triggered.connect(self._calculate_area)
         self.ui.apply_countour_button.clicked.connect(self.display_image)
+        self.ui.actionOpen_Calibration_Image.triggered.connect(self._calibrate_area)
         self.display_image()
 
     def _slider_move(self):
@@ -49,6 +50,16 @@ class ImageViewer(QMainWindow):
             self.filename = filename[0]
             self.image_cv = cv.imread(self.filename, cv.IMREAD_GRAYSCALE)
             self.display_image()
+
+    def _calibrate_area(self):
+        filename = QFileDialog.getOpenFileName(self, 'Open file', os.getcwd(),
+                                               'Image Files (*.png *.jpg *.bmp)')
+        print(filename)
+        if filename[0]:
+            image_cv = cv.imread(filename[0], cv.IMREAD_GRAYSCALE)
+            length, units = OpenCVToQtAdapter.process_calibration_image(image_cv)
+            self.unit_factor = int(units[0])/length
+            self.unit_name = units[1]
 
     def display_image(self):
         """Отображает изображение OpenCV в виджете"""
@@ -74,10 +85,11 @@ class ImageViewer(QMainWindow):
             summ_of_areas = 0
             for contour in self.contours:
                 summ_of_areas += cv.contourArea(contour)
+            areas_units = summ_of_areas * self.unit_factor
             message_box = QMessageBox()
             message_box.setIcon(QMessageBox.Information)
             message_box.setWindowTitle('Area Calculation')
-            message_box.setText(f'Calculated_area: {summ_of_areas}')
+            message_box.setText(f'Calculated_area: {areas_units:.4f} {self.unit_name} \n {summ_of_areas} px')
             message_box.exec()
         else:
             pass

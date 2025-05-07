@@ -134,6 +134,7 @@
      <string>FIle</string>
     </property>
     <addaction name="actionOpen"/>
+    <addaction name="actionOpen_Calibration_Image"/>
    </widget>
    <addaction name="menuFIle"/>
    <addaction name="menuFunctions"/>
@@ -147,6 +148,11 @@
   <action name="actionOpen">
    <property name="text">
     <string>Open</string>
+   </property>
+  </action>
+  <action name="actionOpen_Calibration_Image">
+   <property name="text">
+    <string>Open Calibration Image</string>
    </property>
   </action>
  </widget>
