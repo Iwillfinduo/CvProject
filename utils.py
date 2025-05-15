@@ -51,8 +51,9 @@ class OpenCVToQtAdapter:
         return QPixmap.fromImage(q_img)
 
     @staticmethod
-    def process_calibration_image(image):
+    def process_calibration_image(image_path):
         pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+        image = cv.imread(image_path, cv.IMREAD_GRAYSCALE)
         height, width = image.shape
 
         # Обрезаем нижние 10% и правые 32% изображения
@@ -96,3 +97,84 @@ class OpenCVToQtAdapter:
         gray = image / 255.0
         stretched = np.clip((gray - threshold) / (1.0 - threshold), 0, 1)
         return (stretched * 255).astype(np.uint8)
+
+
+class Image:
+    def __init__(self, image_path, image = None):
+        if image is None:
+            image = cv.imread(image_path, cv.IMREAD_GRAYSCALE)
+        self.image = image
+        self.image_path = image_path
+        self.contours = None
+        self.processed_image = None
+
+
+    def open_image(self, filename):
+        self.image_path = filename
+        self.image = cv.imread(self.image_path, cv.IMREAD_GRAYSCALE)
+        return self.image
+
+    def apply_gamma(self, gamma):
+        lookUpTable = np.empty((1, 256), np.uint8)
+        for i in range(256):
+            lookUpTable[0, i] = np.clip(pow(i / 255.0, gamma) * 255.0, 0, 255)
+        gamma_img = cv.LUT(self.image, lookUpTable)
+        self.processed_image = gamma_img
+        return self
+
+    def apply_contours(self):
+        #FIXME: ERROR WHILE CHANGING GAMMA IF CONTOURS ARE APPLIED
+        if self.processed_image is None:
+            processed_image = self.image
+        else:
+            processed_image = self.processed_image
+        _, temp_image = cv.threshold(processed_image, 0., 10., cv.THRESH_OTSU)
+        contours, hierarchy = cv.findContours(temp_image, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+        #print(len(contours))
+        self.contours = contours
+        back_to_rgb = cv.cvtColor(processed_image, cv.COLOR_GRAY2RGB)
+        self.processed_image = cv.drawContours(back_to_rgb, contours, -1, (255, 0, 0), 3)
+        return self
+
+    def calculate_area(self, unit_factor=None):
+        if self.contours:
+            summ_of_areas = 0
+            areas_in_units = -1
+            for contour in self.contours:
+                summ_of_areas += cv.contourArea(contour)
+            if unit_factor:
+                areas_in_units = summ_of_areas * unit_factor
+            return summ_of_areas, areas_in_units
+        else:
+            return -1, -1
+
+    def get_image(self):
+        return self.image
+    def get_processed_image(self):
+        return self.processed_image
+
+    def get_pixmap(self, use_processed=True):
+        if use_processed and self.processed_image is not None:
+            return OpenCVToQtAdapter.convert_cv_to_qt(self.processed_image)
+        return OpenCVToQtAdapter.convert_cv_to_qt(self.image)
+
+    def gamma_from_high_percentile(self, top_percent=0.001, target=0.6):
+        norm = self.image / 255.0
+        sorted_vals = np.sort(norm.flatten())
+        top_k = max(1, int(len(sorted_vals) * top_percent))
+        bright_avg = np.mean(sorted_vals[-top_k:])
+        gamma = np.log(target) / np.log(bright_avg)
+        return np.clip(gamma, 0.5, 10.0)
+
+    def stretch_bright_region(self, threshold=0.85):
+        gray = self.image / 255.0
+        stretched = np.clip((gray - threshold) / (1.0 - threshold), 0, 1)
+        return Image(self.image_path,(stretched * 255).astype(np.uint8))
+
+
+
+
+
+
+
+
