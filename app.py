@@ -17,10 +17,12 @@ class ImageViewer(QMainWindow):
         self.filename = filename
         self.image_cv = cv.imread(filename, cv.IMREAD_GRAYSCALE)
         super().__init__()
-        self.alpha = 1.0
-        self.beta = 1.0
         self.gamma = 1.0
+        self.first_parameter = 0.7
+        self.second_parameter = 0.5
+        self.unit_factor = None
         self.contours = None
+        self.processed_image = None
         self.image_init_flag = False
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
@@ -30,16 +32,40 @@ class ImageViewer(QMainWindow):
         self.ui.actionCalculate_the_area.triggered.connect(self._calculate_area)
         self.ui.apply_countour_button.clicked.connect(self.display_image)
         self.ui.actionOpen_Calibration_Image.triggered.connect(self._calibrate_area)
+        self.ui.pushButton.clicked.connect(self._apply_first_auto_gamma)
+        self.ui.pushButton_2.clicked.connect(self._apply_second_auto_gamma)
+        self.display_image()
+
+    def _apply_second_auto_gamma(self):
+        if self.ui.pushButton_2.isChecked():
+            self.ui.pushButton.setChecked(False)
+            self._apply_first_auto_gamma()
+            self.auto_gamma_flag = True
+            self.gamma = OpenCVToQtAdapter.gamma_from_high_percentile(self.image_cv, target=self.second_parameter)
+            self.ui.label_3.setText(f"Auto gamma set to {self.gamma:.2f}")
+            self.ui.gamma_label.setText(f'{self.gamma:.2f}')
+            self.ui.gamma_slider.setValue(int(self.gamma * 10))
+        else:
+            self.auto_gamma_flag = False
+        self.display_image()
+
+    def _apply_first_auto_gamma(self):
+        if self.ui.pushButton.isChecked():
+            self.ui.pushButton_2.setChecked(False)
+            self.auto_gamma_flag = False
+            self._apply_second_auto_gamma()
+            self.processed_image = OpenCVToQtAdapter.stretch_bright_region(self.image_cv,
+                                                                           threshold=self.first_parameter)
+        else:
+            self.processed_image = None
+
         self.display_image()
 
     def _slider_move(self):
-        gamma = self.ui.gamma_slider.value() / 10.0
-        self.gamma = gamma
-        self.alpha = self.ui.horizontalSlider.value()
-        self.beta = self.ui.horizontalSlider_2.value()
-        self.ui.gamma_label.setText(str(gamma))
-        self.ui.label_2.setText(str(self.alpha))
-        self.ui.label_3.setText(str(self.beta))
+        if not self.auto_gamma_flag:
+            gamma = self.ui.gamma_slider.value() / 10.0
+            self.gamma = gamma
+            self.ui.gamma_label.setText(str(gamma))
         self.display_image()
 
     def _open_file(self):
@@ -58,17 +84,20 @@ class ImageViewer(QMainWindow):
         if filename[0]:
             image_cv = cv.imread(filename[0], cv.IMREAD_GRAYSCALE)
             length, units = OpenCVToQtAdapter.process_calibration_image(image_cv)
-            self.unit_factor = int(units[0])/length
+            self.unit_factor = int(units[0]) / length
             self.unit_name = units[1]
 
     def display_image(self):
         """Отображает изображение OpenCV в виджете"""
         cv_img = self.image_cv
         gamma = self.gamma
-        lookUpTable = np.empty((1, 256), np.uint8)
-        for i in range(256):
-            lookUpTable[0, i] = np.clip(pow(i / 255.0, gamma) * 255.0, 0, 255)
-        gamma_img = cv.LUT(cv_img, lookUpTable)
+        if self.processed_image is None:
+            lookUpTable = np.empty((1, 256), np.uint8)
+            for i in range(256):
+                lookUpTable[0, i] = np.clip(pow(i / 255.0, gamma) * 255.0, 0, 255)
+            gamma_img = cv.LUT(cv_img, lookUpTable)
+        else:
+            gamma_img = self.processed_image
         if self.ui.apply_countour_button.isChecked():
             gamma_img = self._apply_contours(gamma_img)
         pixmap = OpenCVToQtAdapter.convert_cv_to_qt(gamma_img)
@@ -83,13 +112,19 @@ class ImageViewer(QMainWindow):
     def _calculate_area(self):
         if self.contours:
             summ_of_areas = 0
+            message_box = QMessageBox()
             for contour in self.contours:
                 summ_of_areas += cv.contourArea(contour)
-            areas_units = summ_of_areas * self.unit_factor
-            message_box = QMessageBox()
-            message_box.setIcon(QMessageBox.Information)
-            message_box.setWindowTitle('Area Calculation')
-            message_box.setText(f'Calculated_area: {areas_units:.4f} {self.unit_name} \n {summ_of_areas} px')
+            if self.unit_factor:
+                areas_units = summ_of_areas * self.unit_factor
+                message_box = QMessageBox()
+                message_box.setIcon(QMessageBox.Information)
+                message_box.setWindowTitle('Area Calculation')
+                message_box.setText(f'Calculated_area: {areas_units:.4f} {self.unit_name} \n {summ_of_areas} px')
+            else:
+                message_box.setIcon(QMessageBox.Information)
+                message_box.setWindowTitle('Area Calculation')
+                message_box.setText(f'Area are not calibrated,\n {summ_of_areas} px')
             message_box.exec()
         else:
             pass
@@ -100,8 +135,8 @@ class ImageViewer(QMainWindow):
         contours, hierarchy = cv.findContours(temp_image, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
         print(len(contours))
         self.contours = contours
-        backtorgb = cv.cvtColor(image, cv.COLOR_GRAY2RGB)
-        return cv.drawContours(backtorgb, contours, -1, (255, 0, 0), 3)
+        back_to_rgb = cv.cvtColor(image, cv.COLOR_GRAY2RGB)
+        return cv.drawContours(back_to_rgb, contours, -1, (255, 0, 0), 3)
 
 
 if __name__ == "__main__":

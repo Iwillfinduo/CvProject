@@ -41,12 +41,18 @@
          <property name="text">
           <string>TextLabel</string>
          </property>
+         <property name="alignment">
+          <set>Qt::AlignmentFlag::AlignCenter</set>
+         </property>
         </widget>
        </item>
        <item>
-        <widget class="QSlider" name="horizontalSlider">
-         <property name="orientation">
-          <enum>Qt::Orientation::Horizontal</enum>
+        <widget class="QPushButton" name="pushButton">
+         <property name="text">
+          <string>AutoGamma1</string>
+         </property>
+         <property name="checkable">
+          <bool>true</bool>
          </property>
         </widget>
        </item>
@@ -59,12 +65,18 @@
          <property name="text">
           <string>TextLabel</string>
          </property>
+         <property name="alignment">
+          <set>Qt::AlignmentFlag::AlignCenter</set>
+         </property>
         </widget>
        </item>
        <item>
-        <widget class="QSlider" name="horizontalSlider_2">
-         <property name="orientation">
-          <enum>Qt::Orientation::Horizontal</enum>
+        <widget class="QPushButton" name="pushButton_2">
+         <property name="text">
+          <string>AutoGamma2</string>
+         </property>
+         <property name="checkable">
+          <bool>true</bool>
          </property>
         </widget>
        </item>

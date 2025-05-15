@@ -1,4 +1,3 @@
-
 from PySide6.QtCore import (QCoreApplication, QMetaObject, QRect,
                             Qt)
 from PySide6.QtGui import (QAction)
@@ -34,14 +33,15 @@ class Ui_MainWindow(object):
         self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
         self.label_2 = QLabel(self.verticalLayoutWidget)
         self.label_2.setObjectName(u"label_2")
+        self.label_2.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.horizontalLayout_2.addWidget(self.label_2)
 
-        self.horizontalSlider = QSlider(self.verticalLayoutWidget)
-        self.horizontalSlider.setObjectName(u"horizontalSlider")
-        self.horizontalSlider.setOrientation(Qt.Orientation.Horizontal)
+        self.pushButton = QPushButton(self.verticalLayoutWidget)
+        self.pushButton.setObjectName(u"pushButton")
+        self.pushButton.setCheckable(True)
 
-        self.horizontalLayout_2.addWidget(self.horizontalSlider)
+        self.horizontalLayout_2.addWidget(self.pushButton)
 
         self.verticalLayout.addLayout(self.horizontalLayout_2)
 
@@ -49,14 +49,15 @@ class Ui_MainWindow(object):
         self.horizontalLayout_4.setObjectName(u"horizontalLayout_4")
         self.label_3 = QLabel(self.verticalLayoutWidget)
         self.label_3.setObjectName(u"label_3")
+        self.label_3.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.horizontalLayout_4.addWidget(self.label_3)
 
-        self.horizontalSlider_2 = QSlider(self.verticalLayoutWidget)
-        self.horizontalSlider_2.setObjectName(u"horizontalSlider_2")
-        self.horizontalSlider_2.setOrientation(Qt.Orientation.Horizontal)
+        self.pushButton_2 = QPushButton(self.verticalLayoutWidget)
+        self.pushButton_2.setObjectName(u"pushButton_2")
+        self.pushButton_2.setCheckable(True)
 
-        self.horizontalLayout_4.addWidget(self.horizontalSlider_2)
+        self.horizontalLayout_4.addWidget(self.pushButton_2)
 
         self.verticalLayout.addLayout(self.horizontalLayout_4)
 
@@ -120,7 +121,9 @@ class Ui_MainWindow(object):
             QCoreApplication.translate("MainWindow", u"Open Calibration Image", None))
         self.pixmap_label.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
         self.label_2.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
+        self.pushButton.setText(QCoreApplication.translate("MainWindow", u"AutoGamma1", None))
         self.label_3.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
+        self.pushButton_2.setText(QCoreApplication.translate("MainWindow", u"AutoGamma2", None))
         self.gamma_label.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
         self.apply_countour_button.setText(QCoreApplication.translate("MainWindow", u"Apply Contour", None))
         self.menuFunctions.setTitle(QCoreApplication.translate("MainWindow", u"Functions", None))

@@ -75,3 +75,24 @@ class OpenCVToQtAdapter:
         text = pytesseract.image_to_string(thresh)
 
         return max_length, text.split()[0:2]
+
+    @staticmethod
+    def auto_gamma_mean(gray_image):
+        mean = np.mean(gray_image)
+        gamma = np.log(128) / np.log(mean + 1e-7)  # Стремимся к средней яркости 128
+        return gamma
+
+    @staticmethod
+    def gamma_from_high_percentile(gray_image, top_percent=0.001, target=0.6):
+        norm = gray_image / 255.0
+        sorted_vals = np.sort(norm.flatten())
+        top_k = max(1, int(len(sorted_vals) * top_percent))
+        bright_avg = np.mean(sorted_vals[-top_k:])
+        gamma = np.log(target) / np.log(bright_avg)
+        return np.clip(gamma, 0.5, 10.0)
+
+    @staticmethod
+    def stretch_bright_region(image, threshold=0.85):
+        gray = image / 255.0
+        stretched = np.clip((gray - threshold) / (1.0 - threshold), 0, 1)
+        return (stretched * 255).astype(np.uint8)
