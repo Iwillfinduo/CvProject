@@ -92,9 +92,11 @@ class ImageViewer(QMainWindow):
             gamma_img = self.image.apply_gamma(self.gamma)
         else:
             gamma_img = self.processed_image
+        is_contours = False
         if self.ui.apply_countour_button.isChecked():
             gamma_img = gamma_img.apply_contours()
-        pixmap = gamma_img.get_pixmap()
+            is_contours = True
+        pixmap = gamma_img.get_pixmap(use_contours=is_contours)
         if self.image_init_flag:
             self.ui.pixmap_label.setPixmap(
                 pixmap.scaled(self.ui.pixmap_label.width(), self.ui.pixmap_label.height(), Qt.KeepAspectRatio,

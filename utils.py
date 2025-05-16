@@ -107,6 +107,7 @@ class Image:
         self.image_path = image_path
         self.contours = None
         self.processed_image = None
+        self.image_with_contours = None
 
 
     def open_image(self, filename):
@@ -120,10 +121,11 @@ class Image:
             lookUpTable[0, i] = np.clip(pow(i / 255.0, gamma) * 255.0, 0, 255)
         gamma_img = cv.LUT(self.image, lookUpTable)
         self.processed_image = gamma_img
+        self.is_applied_contours = False
         return self
 
     def apply_contours(self):
-        #FIXME: ERROR WHILE CHANGING GAMMA IF CONTOURS ARE APPLIED
+        #FIXED: ERROR WHILE CHANGING GAMMA IF CONTOURS ARE APPLIED
         if self.processed_image is None:
             processed_image = self.image
         else:
@@ -133,7 +135,7 @@ class Image:
         #print(len(contours))
         self.contours = contours
         back_to_rgb = cv.cvtColor(processed_image, cv.COLOR_GRAY2RGB)
-        self.processed_image = cv.drawContours(back_to_rgb, contours, -1, (255, 0, 0), 3)
+        self.image_with_contours = cv.drawContours(back_to_rgb, contours, -1, (255, 0, 0), 3)
         return self
 
     def calculate_area(self, unit_factor=None):
@@ -152,8 +154,12 @@ class Image:
         return self.image
     def get_processed_image(self):
         return self.processed_image
+    def get_image_with_contours(self):
+        return self.image_with_contours
 
-    def get_pixmap(self, use_processed=True):
+    def get_pixmap(self, use_processed=True, use_contours=True):
+        if use_contours and self.contours:
+            return OpenCVToQtAdapter.convert_cv_to_qt(self.image_with_contours)
         if use_processed and self.processed_image is not None:
             return OpenCVToQtAdapter.convert_cv_to_qt(self.processed_image)
         return OpenCVToQtAdapter.convert_cv_to_qt(self.image)
