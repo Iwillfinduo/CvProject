@@ -1,8 +1,7 @@
-import numpy as np
 import cv2 as cv
-from PySide6.QtGui import QImage, QPixmap
-from PySide6.QtCore import Qt
+import numpy as np
 import pytesseract
+from PySide6.QtGui import QImage, QPixmap
 
 
 class OpenCVToQtAdapter:
@@ -100,7 +99,7 @@ class OpenCVToQtAdapter:
 
 
 class Image:
-    def __init__(self, image_path, image = None):
+    def __init__(self, image_path, image=None):
         if image is None:
             image = cv.imread(image_path, cv.IMREAD_GRAYSCALE)
         self.image = image
@@ -108,7 +107,6 @@ class Image:
         self.contours = None
         self.processed_image = None
         self.image_with_contours = None
-
 
     def open_image(self, filename):
         self.image_path = filename
@@ -125,14 +123,14 @@ class Image:
         return self
 
     def apply_contours(self):
-        #FIXED: ERROR WHILE CHANGING GAMMA IF CONTOURS ARE APPLIED
+        # FIXED: ERROR WHILE CHANGING GAMMA IF CONTOURS ARE APPLIED
         if self.processed_image is None:
             processed_image = self.image
         else:
             processed_image = self.processed_image
         _, temp_image = cv.threshold(processed_image, 0., 10., cv.THRESH_OTSU)
         contours, hierarchy = cv.findContours(temp_image, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-        #print(len(contours))
+        # print(len(contours))
         self.contours = contours
         back_to_rgb = cv.cvtColor(processed_image, cv.COLOR_GRAY2RGB)
         self.image_with_contours = cv.drawContours(back_to_rgb, contours, -1, (255, 0, 0), 3)
@@ -152,8 +150,10 @@ class Image:
 
     def get_image(self):
         return self.image
+
     def get_processed_image(self):
         return self.processed_image
+
     def get_image_with_contours(self):
         return self.image_with_contours
 
@@ -175,33 +175,53 @@ class Image:
     def stretch_bright_region(self, threshold=0.85):
         gray = self.image / 255.0
         stretched = np.clip((gray - threshold) / (1.0 - threshold), 0, 1)
-        return Image(self.image_path,(stretched * 255).astype(np.uint8))
+        return Image(self.image_path, (stretched * 255).astype(np.uint8))
 
-    def calculate_gamma_from_contour_graph(self, min_gamma = 1.0, max_gamma = 10.0, area_difference_coefficient=10**6, modal_window = None):
+    def _calculate_gamma_from_contour_graph(self, min_gamma=1.0, max_gamma=10.0, area_difference_coefficient=10 ** 6,
+                                           modal_window=None):
         gamma_space = np.linspace(min_gamma, max_gamma, num=100)
         prev_area = 0.0
-        for num, gamma in enumerate(gamma_space):
+        num = 0
+        gamma = min_gamma
+        while gamma <= max_gamma:
             self.apply_gamma(gamma)
             contour_img = self.apply_contours()
             current_area, _ = contour_img.calculate_area()
             if prev_area - current_area > area_difference_coefficient:
                 if modal_window is not None:
                     modal_window.setValue(100)
-                return gamma_space[(num + 2)%100]
+                return gamma + 0.1
             if modal_window is not None:
                 modal_window.setValue(num)
-            #print(prev_area - current_area, gamma)
+            # print(prev_area - current_area, gamma)
             prev_area = current_area
+            num += 1
+            gamma += 0.1
         return min_gamma
+
+    def calculate_gamma_from_contour_graph(self, min_gamma=1.0, max_gamma=10.0, area_difference_coefficient=20,
+                                            modal_window=None):
+        gamma_space = np.linspace(min_gamma, max_gamma, num=100)
+        prev_area = 0.0
+        num = 0
+        gamma = min_gamma
+        while gamma <= max_gamma:
+            self.apply_gamma(gamma)
+            contour_img = self.apply_contours()
+            current_area, _ = contour_img.calculate_area()
+            if prev_area/current_area > area_difference_coefficient:
+                if modal_window is not None:
+                    modal_window.setValue(100)
+                return gamma + 0.1
+            if modal_window is not None:
+                modal_window.setValue(num)
+            #print(prev_area/current_area, gamma)
+            prev_area = current_area
+            num += 1
+            gamma += 0.1
+        return min_gamma
+
+
 
     def clone(self):
         return Image(image_path=self.image_path, image=self.image)
-
-
-
-
-
-
-
-
-

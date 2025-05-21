@@ -132,7 +132,7 @@ class ImageViewer(QMainWindow):
         progress_dialog.setMaximum(150)
         progress_dialog.setMinimum(0)
         image = self.image.clone()
-        gamma = image.calculate_gamma_from_contour_graph(max_gamma=15,area_difference_coefficient=859103 - 1, modal_window=progress_dialog)
+        gamma = image.calculate_gamma_from_contour_graph(max_gamma=15,modal_window=progress_dialog)
         self.gamma = gamma
         self._update_gamma()
         self.display_image()
