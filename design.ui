@@ -140,6 +140,8 @@
      <string>Functions</string>
     </property>
     <addaction name="actionCalculate_the_area"/>
+    <addaction name="separator"/>
+    <addaction name="actionAuto_Gamma_by_area"/>
    </widget>
    <widget class="QMenu" name="menuFIle">
     <property name="title">
@@ -165,6 +167,11 @@
   <action name="actionOpen_Calibration_Image">
    <property name="text">
     <string>Open Calibration Image</string>
+   </property>
+  </action>
+  <action name="actionAuto_Gamma_by_area">
+   <property name="text">
+    <string>Auto Gamma by area</string>
    </property>
   </action>
  </widget>

@@ -15,6 +15,8 @@ class Ui_MainWindow(object):
         self.actionOpen.setObjectName(u"actionOpen")
         self.actionOpen_Calibration_Image = QAction(MainWindow)
         self.actionOpen_Calibration_Image.setObjectName(u"actionOpen_Calibration_Image")
+        self.actionAuto_Gamma_by_area = QAction(MainWindow)
+        self.actionAuto_Gamma_by_area.setObjectName(u"actionAuto_Gamma_by_area")
         self.centralwidget = QWidget(MainWindow)
         self.centralwidget.setObjectName(u"centralwidget")
         self.verticalLayoutWidget = QWidget(self.centralwidget)
@@ -104,6 +106,8 @@ class Ui_MainWindow(object):
         self.menubar.addAction(self.menuFIle.menuAction())
         self.menubar.addAction(self.menuFunctions.menuAction())
         self.menuFunctions.addAction(self.actionCalculate_the_area)
+        self.menuFunctions.addSeparator()
+        self.menuFunctions.addAction(self.actionAuto_Gamma_by_area)
         self.menuFIle.addAction(self.actionOpen)
         self.menuFIle.addAction(self.actionOpen_Calibration_Image)
 
@@ -119,6 +123,7 @@ class Ui_MainWindow(object):
         self.actionOpen.setText(QCoreApplication.translate("MainWindow", u"Open", None))
         self.actionOpen_Calibration_Image.setText(
             QCoreApplication.translate("MainWindow", u"Open Calibration Image", None))
+        self.actionAuto_Gamma_by_area.setText(QCoreApplication.translate("MainWindow", u"Auto Gamma by area", None))
         self.pixmap_label.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
         self.label_2.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
         self.pushButton.setText(QCoreApplication.translate("MainWindow", u"AutoGamma1", None))

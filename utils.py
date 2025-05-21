@@ -177,6 +177,27 @@ class Image:
         stretched = np.clip((gray - threshold) / (1.0 - threshold), 0, 1)
         return Image(self.image_path,(stretched * 255).astype(np.uint8))
 
+    def calculate_gamma_from_contour_graph(self, min_gamma = 1.0, max_gamma = 10.0, area_difference_coefficient=10**6, modal_window = None):
+        gamma_space = np.linspace(min_gamma, max_gamma, num=100)
+        prev_area = 0.0
+        for num, gamma in enumerate(gamma_space):
+            self.apply_gamma(gamma)
+            contour_img = self.apply_contours()
+            current_area, _ = contour_img.calculate_area()
+            if prev_area - current_area > area_difference_coefficient:
+                if modal_window is not None:
+                    modal_window.setValue(100)
+                return gamma_space[(num + 2)%100]
+            if modal_window is not None:
+                modal_window.setValue(num)
+            #print(prev_area - current_area, gamma)
+            prev_area = current_area
+        return min_gamma
+
+    def clone(self):
+        return Image(image_path=self.image_path, image=self.image)
+
+
 
 
 

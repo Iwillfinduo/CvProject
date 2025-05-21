@@ -2,7 +2,7 @@ import os
 import sys
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox
+from PySide6.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QProgressDialog
 
 from ui import Ui_MainWindow
 from utils import OpenCVToQtAdapter, Image
@@ -28,6 +28,7 @@ class ImageViewer(QMainWindow):
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
         self.ui.gamma_label.setText(str(self.gamma))
+        self.ui.gamma_slider.setMaximum(150)
         self.ui.gamma_slider.valueChanged.connect(self._slider_move)
         self.ui.actionOpen.triggered.connect(self._open_file)
         self.ui.actionCalculate_the_area.triggered.connect(self._calculate_area)
@@ -35,6 +36,7 @@ class ImageViewer(QMainWindow):
         self.ui.actionOpen_Calibration_Image.triggered.connect(self._calibrate_area)
         self.ui.pushButton.clicked.connect(self._apply_first_auto_gamma)
         self.ui.pushButton_2.clicked.connect(self._apply_second_auto_gamma)
+        self.ui.actionAuto_Gamma_by_area.triggered.connect(self._auto_gamma_by_area)
         self.display_image()
 
     def _apply_second_auto_gamma(self):
@@ -44,8 +46,7 @@ class ImageViewer(QMainWindow):
             self.auto_gamma_flag = True
             self.gamma = self.image.gamma_from_high_percentile(target=self.second_parameter)
             self.ui.label_3.setText(f"Auto gamma set to {self.gamma:.2f}")
-            self.ui.gamma_label.setText(f'{self.gamma:.2f}')
-            self.ui.gamma_slider.setValue(int(self.gamma * 10))
+            self._update_gamma()
         else:
             self.auto_gamma_flag = False
         self.display_image()
@@ -121,6 +122,24 @@ class ImageViewer(QMainWindow):
         else:
             return
         message_box.exec()
+
+    def _auto_gamma_by_area(self):
+        progress_dialog = QProgressDialog()
+        progress_dialog.setWindowTitle('Auto gamma')
+        progress_dialog.setValue(0)
+        progress_dialog.setLabelText('Finding suitable gamma value')
+        progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
+        progress_dialog.setMaximum(150)
+        progress_dialog.setMinimum(0)
+        image = self.image.clone()
+        gamma = image.calculate_gamma_from_contour_graph(max_gamma=15,area_difference_coefficient=859103 - 1, modal_window=progress_dialog)
+        self.gamma = gamma
+        self._update_gamma()
+        self.display_image()
+    def _update_gamma(self):
+        gamma = self.gamma
+        self.ui.gamma_label.setText(f'{self.gamma:.2f}')
+        self.ui.gamma_slider.setValue(int(self.gamma * 10))
 
 
 if __name__ == "__main__":
