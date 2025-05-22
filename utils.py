@@ -1,3 +1,5 @@
+import os
+
 import cv2 as cv
 import numpy as np
 import pytesseract
@@ -5,6 +7,7 @@ from PySide6.QtGui import QImage, QPixmap
 
 
 class OpenCVToQtAdapter:
+    '''Статический класс с вспомогательными статическими функциями'''
     @staticmethod
     def convert_cv_to_qt(cv_img: np.ndarray, swap_rgb=True, mirror=False) -> QPixmap:
         """
@@ -51,7 +54,7 @@ class OpenCVToQtAdapter:
 
     @staticmethod
     def process_calibration_image(image_path):
-        pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+        pytesseract.pytesseract.tesseract_cmd = os.getenv("TESSERACT_CMD").encode('unicode_escape').decode()
         image = cv.imread(image_path, cv.IMREAD_GRAYSCALE)
         height, width = image.shape
 
@@ -97,8 +100,28 @@ class OpenCVToQtAdapter:
         stretched = np.clip((gray - threshold) / (1.0 - threshold), 0, 1)
         return (stretched * 255).astype(np.uint8)
 
+    @staticmethod
+    def find_std_deviation(y, window=5):
+        std_dev = []
+        max_std_index = 0
+        max_std_value = float("-inf")
+        for i in range(len(y) - window):
+            segment = y[i:i + window]
+            deviation = np.std(segment)
+            if deviation > max_std_value:
+                max_std_index = i
+                max_std_value = deviation
+            std_dev.append((np.std(segment)))
+
+        print(std_dev)
+
+        return max_std_index + window
+
 
 class Image:
+    '''Класс для удобного взаимодействия с изображением
+     и изменения его параметров без создания высокой связности
+     QT приложения(теперь QT App делает 0 вызовов к opencv)'''
     def __init__(self, image_path, image=None):
         if image is None:
             image = cv.imread(image_path, cv.IMREAD_GRAYSCALE)
@@ -108,11 +131,28 @@ class Image:
         self.processed_image = None
         self.image_with_contours = None
 
+    #Getters, setters and simple staff:
+    def get_image(self):
+        return self.image
+
+    def get_processed_image(self):
+        return self.processed_image
+
+    def get_image_with_contours(self):
+        return self.image_with_contours
+
+    def get_contours(self):
+        return self.contours
+
+    def clone(self):
+        return Image(image_path=self.image_path, image=self.image)
+
     def open_image(self, filename):
         self.image_path = filename
         self.image = cv.imread(self.image_path, cv.IMREAD_GRAYSCALE)
         return self.image
 
+    # Meaningful functions
     def apply_gamma(self, gamma):
         lookUpTable = np.empty((1, 256), np.uint8)
         for i in range(256):
@@ -143,19 +183,10 @@ class Image:
             for contour in self.contours:
                 summ_of_areas += cv.contourArea(contour)
             if unit_factor:
-                areas_in_units = summ_of_areas * unit_factor
+                areas_in_units = summ_of_areas * (unit_factor)**2
             return summ_of_areas, areas_in_units
         else:
             return -1, -1
-
-    def get_image(self):
-        return self.image
-
-    def get_processed_image(self):
-        return self.processed_image
-
-    def get_image_with_contours(self):
-        return self.image_with_contours
 
     def get_pixmap(self, use_processed=True, use_contours=True):
         if use_contours and self.contours:
@@ -179,7 +210,7 @@ class Image:
 
     def _calculate_gamma_from_contour_graph(self, min_gamma=1.0, max_gamma=10.0, area_difference_coefficient=10 ** 6,
                                            modal_window=None):
-        gamma_space = np.linspace(min_gamma, max_gamma, num=100)
+        # DEPRECATED
         prev_area = 0.0
         num = 0
         gamma = min_gamma
@@ -201,7 +232,7 @@ class Image:
 
     def calculate_gamma_from_contour_graph(self, min_gamma=1.0, max_gamma=10.0, area_difference_coefficient=20,
                                             modal_window=None):
-        gamma_space = np.linspace(min_gamma, max_gamma, num=100)
+        # DEPRECATED
         prev_area = 0.0
         num = 0
         gamma = min_gamma
@@ -221,7 +252,21 @@ class Image:
             gamma += 0.1
         return min_gamma
 
-
-
-    def clone(self):
-        return Image(image_path=self.image_path, image=self.image)
+    def calculate_gamma_from_contour_graph_with_std(self, min_gamma=1.0, max_gamma=10.0, area_difference_coefficient=20,
+                                            modal_window=None):
+        '''Предподсчитывает все значения площадей в зависимости от гаммы
+         и ищет максимальное стандартное квадратичное отклонение окна'''
+        num = 0
+        gamma = min_gamma
+        areas = []
+        while gamma <= max_gamma:
+            self.apply_gamma(gamma)
+            contour_img = self.apply_contours()
+            current_area, _ = contour_img.calculate_area()
+            areas.append(current_area)
+            # print(prev_area/current_area, gamma)
+            num += 1
+            if modal_window is not None:
+                modal_window.setValue(num * 100 / ((max_gamma - min_gamma)/0.1))
+            gamma += 0.1
+        return  min_gamma + 0.1 * OpenCVToQtAdapter.find_std_deviation(areas)

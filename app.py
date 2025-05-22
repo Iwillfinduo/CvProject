@@ -110,15 +110,17 @@ class ImageViewer(QMainWindow):
         message_box = QMessageBox()
         sum_of_areas, areas_units = self.image.calculate_area(
             self.unit_factor) if self.processed_image is None else self.processed_image.calculate_area(self.unit_factor)
+        contours = self.image.get_contours()
         if areas_units > 0:
             message_box = QMessageBox()
             message_box.setIcon(QMessageBox.Information)
             message_box.setWindowTitle('Area Calculation')
-            message_box.setText(f'Calculated_area: {areas_units:.4f} {self.unit_name} \n {sum_of_areas} px')
+            message_box.setText(
+                f'Calculated_area: {areas_units:.4f} {self.unit_name} \n{sum_of_areas} px \nAmount_of_contours {len(contours)}')
         elif sum_of_areas >= 0:
             message_box.setIcon(QMessageBox.Information)
             message_box.setWindowTitle('Area Calculation')
-            message_box.setText(f'Area are not calibrated,\n {sum_of_areas} px')
+            message_box.setText(f'Area are not calibrated,\n{sum_of_areas} px \nAmount_of_contours {len(contours)}')
         else:
             return
         message_box.exec()
@@ -128,21 +130,23 @@ class ImageViewer(QMainWindow):
         progress_dialog.setWindowTitle('Auto gamma')
         progress_dialog.setValue(0)
         progress_dialog.setLabelText('Finding suitable gamma value')
-        progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
+        progress_dialog.setWindowModality(Qt.WindowModality.ApplicationModal)
         progress_dialog.setMaximum(150)
         progress_dialog.setMinimum(0)
+        progress_dialog.setCancelButton(None)
         image = self.image.clone()
-        gamma = image.calculate_gamma_from_contour_graph(max_gamma=15,modal_window=progress_dialog)
+        gamma = image.calculate_gamma_from_contour_graph_with_std(max_gamma=15, modal_window=progress_dialog)
         self.gamma = gamma
         self._update_gamma()
         self.display_image()
+
     def _update_gamma(self):
-        gamma = self.gamma
         self.ui.gamma_label.setText(f'{self.gamma:.2f}')
         self.ui.gamma_slider.setValue(int(self.gamma * 10))
 
 
 if __name__ == "__main__":
+    # ТОЧКА ВХОДА ТУТ
     app = QApplication(sys.argv)
 
     viewer = ImageViewer()
