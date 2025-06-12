@@ -1,13 +1,16 @@
 import os
 import sys
+from time import sleep
 
-from PySide6.QtCore import Qt
+from PIL.ImageQt import QImage, QPixmap
+from PySide6.QtCore import Qt, Slot
 from PySide6.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QProgressDialog
 
 from ui import Ui_MainWindow
-from utils import OpenCVToQtAdapter, Image
+from utils import OpenCVToQtAdapter
+from ObjectClasses import Image, VideoThread
 
-filename = '../data/first/Tv68.bmp'
+filename = 'placeholder.png'
 
 
 class ImageViewer(QMainWindow):
@@ -23,6 +26,7 @@ class ImageViewer(QMainWindow):
         self.unit_factor = None
         self.processed_image = None
         self.image_init_flag = False
+        self.thread = None
 
         # Ui calls
         self.ui = Ui_MainWindow()
@@ -33,11 +37,39 @@ class ImageViewer(QMainWindow):
         self.ui.actionOpen.triggered.connect(self._open_file)
         self.ui.actionCalculate_the_area.triggered.connect(self._calculate_area)
         self.ui.apply_countour_button.clicked.connect(self.display_image)
+        self.ui.actionConnect_Camera.triggered.connect(self._connect_video_thread)
         self.ui.actionOpen_Calibration_Image.triggered.connect(self._calibrate_area)
         self.ui.pushButton.clicked.connect(self._apply_first_auto_gamma)
         self.ui.pushButton_2.clicked.connect(self._apply_second_auto_gamma)
         self.ui.actionAuto_Gamma_by_area.triggered.connect(self._auto_gamma_by_area)
         self.display_image()
+
+
+    def _connect_video_thread(self):
+        self.thread = VideoThread(0)
+        self.thread.frame_ready.connect(self.display_video_slot)
+        self.thread.start()
+
+    @Slot(Image)
+    def display_video_slot(self, image):
+        print('a')
+        if self.thread is None:
+            return
+        self.image = image
+        if self.ui.pushButton.isChecked():
+            image = image.stretch_bright_region(threshold=self.first_parameter)
+
+        else:
+            image = image.apply_gamma(self.gamma)
+        is_contours = False
+        if self.ui.apply_countour_button.isChecked():
+            image = image.apply_contours()
+            is_contours = True
+        pixmap = image.get_pixmap(use_contours=is_contours)
+        self.ui.pixmap_label.setPixmap(
+            pixmap.scaled(self.ui.pixmap_label.width(), self.ui.pixmap_label.height(), Qt.KeepAspectRatio,
+                          Qt.SmoothTransformation))
+
 
     def _apply_second_auto_gamma(self):
         if self.ui.pushButton_2.isChecked():
@@ -74,8 +106,12 @@ class ImageViewer(QMainWindow):
                                                'Image Files (*.png *.jpg *.bmp)')
         print(filename)
         if filename[0]:
+            if self.thread is not None:
+                self.thread.stop()
+                self.thread = None
             self.filename = filename[0]
             self.image = Image(self.filename)
+            self.processed_image = None
             self.display_image()
 
     def _calibrate_area(self):
@@ -89,6 +125,9 @@ class ImageViewer(QMainWindow):
 
     def display_image(self):
         """Отображает изображение OpenCV в виджете"""
+        print('b')
+        print(self.filename)
+        print(self.image.image_path)
         if self.processed_image is None:
             gamma_img = self.image.apply_gamma(self.gamma)
         else:
@@ -102,15 +141,19 @@ class ImageViewer(QMainWindow):
             self.ui.pixmap_label.setPixmap(
                 pixmap.scaled(self.ui.pixmap_label.width(), self.ui.pixmap_label.height(), Qt.KeepAspectRatio,
                               Qt.SmoothTransformation))
+            self.ui.pixmap_label.setPixmap(
+                pixmap.scaled(self.ui.pixmap_label.width(), self.ui.pixmap_label.height(), Qt.KeepAspectRatio,
+                              Qt.SmoothTransformation))
         else:
             self.ui.pixmap_label.setPixmap(pixmap)
         self.image_init_flag = True
 
     def _calculate_area(self):
         message_box = QMessageBox()
+        contours = self.image.get_contours()
         sum_of_areas, areas_units = self.image.calculate_area(
             self.unit_factor) if self.processed_image is None else self.processed_image.calculate_area(self.unit_factor)
-        contours = self.image.get_contours()
+
         if areas_units > 0:
             message_box = QMessageBox()
             message_box.setIcon(QMessageBox.Information)

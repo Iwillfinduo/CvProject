@@ -17,6 +17,8 @@ class Ui_MainWindow(object):
         self.actionOpen_Calibration_Image.setObjectName(u"actionOpen_Calibration_Image")
         self.actionAuto_Gamma_by_area = QAction(MainWindow)
         self.actionAuto_Gamma_by_area.setObjectName(u"actionAuto_Gamma_by_area")
+        self.actionConnect_Camera = QAction(MainWindow)
+        self.actionConnect_Camera.setObjectName(u"actionConnect_Camera")
         self.centralwidget = QWidget(MainWindow)
         self.centralwidget.setObjectName(u"centralwidget")
         self.verticalLayoutWidget = QWidget(self.centralwidget)
@@ -93,7 +95,7 @@ class Ui_MainWindow(object):
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QMenuBar(MainWindow)
         self.menubar.setObjectName(u"menubar")
-        self.menubar.setGeometry(QRect(0, 0, 800, 33))
+        self.menubar.setGeometry(QRect(0, 0, 800, 23))
         self.menuFunctions = QMenu(self.menubar)
         self.menuFunctions.setObjectName(u"menuFunctions")
         self.menuFIle = QMenu(self.menubar)
@@ -110,6 +112,8 @@ class Ui_MainWindow(object):
         self.menuFunctions.addAction(self.actionAuto_Gamma_by_area)
         self.menuFIle.addAction(self.actionOpen)
         self.menuFIle.addAction(self.actionOpen_Calibration_Image)
+        self.menuFIle.addAction(self.actionConnect_Camera)
+        self.menuFIle.addSeparator()
 
         self.retranslateUi(MainWindow)
 
@@ -124,6 +128,7 @@ class Ui_MainWindow(object):
         self.actionOpen_Calibration_Image.setText(
             QCoreApplication.translate("MainWindow", u"Open Calibration Image", None))
         self.actionAuto_Gamma_by_area.setText(QCoreApplication.translate("MainWindow", u"Auto Gamma by area", None))
+        self.actionConnect_Camera.setText(QCoreApplication.translate("MainWindow", u"Connect Camera", None))
         self.pixmap_label.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
         self.label_2.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
         self.pushButton.setText(QCoreApplication.translate("MainWindow", u"AutoGamma1", None))
