@@ -52,7 +52,6 @@ class ImageViewer(QMainWindow):
 
     @Slot(Image)
     def display_video_slot(self, image):
-        print('a')
         if self.thread is None:
             return
         self.image = image
@@ -125,9 +124,6 @@ class ImageViewer(QMainWindow):
 
     def display_image(self):
         """Отображает изображение OpenCV в виджете"""
-        print('b')
-        print(self.filename)
-        print(self.image.image_path)
         if self.processed_image is None:
             gamma_img = self.image.apply_gamma(self.gamma)
         else:
