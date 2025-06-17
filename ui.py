@@ -122,19 +122,19 @@ class Ui_MainWindow(object):
     # setupUi
 
     def retranslateUi(self, MainWindow):
-        MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Thingie", None))
+        MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Area Calc", None))
         self.actionCalculate_the_area.setText(QCoreApplication.translate("MainWindow", u"Calculate the area", None))
         self.actionOpen.setText(QCoreApplication.translate("MainWindow", u"Open", None))
         self.actionOpen_Calibration_Image.setText(
             QCoreApplication.translate("MainWindow", u"Open Calibration Image", None))
         self.actionAuto_Gamma_by_area.setText(QCoreApplication.translate("MainWindow", u"Auto Gamma by area", None))
         self.actionConnect_Camera.setText(QCoreApplication.translate("MainWindow", u"Connect Camera", None))
-        self.pixmap_label.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
-        self.label_2.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
+        self.pixmap_label.setText(QCoreApplication.translate("MainWindow", u"", None))
+        self.label_2.setText(QCoreApplication.translate("MainWindow", u"", None))
         self.pushButton.setText(QCoreApplication.translate("MainWindow", u"AutoGamma1", None))
-        self.label_3.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
+        self.label_3.setText(QCoreApplication.translate("MainWindow", u"", None))
         self.pushButton_2.setText(QCoreApplication.translate("MainWindow", u"AutoGamma2", None))
-        self.gamma_label.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
+        self.gamma_label.setText(QCoreApplication.translate("MainWindow", u"", None))
         self.apply_countour_button.setText(QCoreApplication.translate("MainWindow", u"Apply Contour", None))
         self.menuFunctions.setTitle(QCoreApplication.translate("MainWindow", u"Functions", None))
         self.menuFIle.setTitle(QCoreApplication.translate("MainWindow", u"FIle", None))
