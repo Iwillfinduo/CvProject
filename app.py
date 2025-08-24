@@ -3,7 +3,7 @@ import sys
 from time import sleep
 
 from PIL.ImageQt import QImage, QPixmap
-from PySide6.QtCore import Qt, Slot
+from PySide6.QtCore import Qt, Slot, QTimer
 from PySide6.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QProgressDialog
 
 from ui import Ui_MainWindow
@@ -42,8 +42,13 @@ class ImageViewer(QMainWindow):
         self.ui.pushButton.clicked.connect(self._apply_first_auto_gamma)
         self.ui.pushButton_2.clicked.connect(self._apply_second_auto_gamma)
         self.ui.actionAuto_Gamma_by_area.triggered.connect(self._auto_gamma_by_area)
-        self.display_image()
+        # Don't call display_image() here - wait for the widget to be properly sized
 
+    def showEvent(self, event):
+        """Called when the widget is shown - this ensures proper sizing"""
+        super().showEvent(event)
+        # Use a single-shot timer to ensure the widget is fully laid out
+        QTimer.singleShot(100, self.display_image)
 
     def _connect_video_thread(self):
         self.thread = VideoThread(0)
@@ -133,15 +138,21 @@ class ImageViewer(QMainWindow):
             gamma_img = gamma_img.apply_contours()
             is_contours = True
         pixmap = gamma_img.get_pixmap(use_contours=is_contours)
-        if self.image_init_flag:
-            self.ui.pixmap_label.setPixmap(
-                pixmap.scaled(self.ui.pixmap_label.width(), self.ui.pixmap_label.height(), Qt.KeepAspectRatio,
-                              Qt.SmoothTransformation))
-            self.ui.pixmap_label.setPixmap(
-                pixmap.scaled(self.ui.pixmap_label.width(), self.ui.pixmap_label.height(), Qt.KeepAspectRatio,
-                              Qt.SmoothTransformation))
+        
+        # Check if the label has proper dimensions before scaling
+        if self.ui.pixmap_label.width() > 0 and self.ui.pixmap_label.height() > 0:
+            # Always scale the image to fit the label properly
+            scaled_pixmap = pixmap.scaled(
+                self.ui.pixmap_label.width(), 
+                self.ui.pixmap_label.height(), 
+                Qt.KeepAspectRatio,
+                Qt.SmoothTransformation
+            )
+            self.ui.pixmap_label.setPixmap(scaled_pixmap)
         else:
+            # If label dimensions are not ready, just set the pixmap without scaling
             self.ui.pixmap_label.setPixmap(pixmap)
+        
         self.image_init_flag = True
 
     def _calculate_area(self):
