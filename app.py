@@ -3,7 +3,7 @@ import sys
 from time import sleep
 
 from PIL.ImageQt import QImage, QPixmap
-from PySide6.QtCore import Qt, Slot, QTimer
+from PySide6.QtCore import Qt, Slot, QTimer, QSize
 from PySide6.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QProgressDialog
 
 from ui import Ui_MainWindow
@@ -42,6 +42,7 @@ class ImageViewer(QMainWindow):
         self.ui.pushButton.clicked.connect(self._apply_first_auto_gamma)
         self.ui.pushButton_2.clicked.connect(self._apply_second_auto_gamma)
         self.ui.actionAuto_Gamma_by_area.triggered.connect(self._auto_gamma_by_area)
+        self.ui.pixmap_label.setMinimumSize(QSize(200, 200))
         # Don't call display_image() here - wait for the widget to be properly sized
 
     def showEvent(self, event):
@@ -49,6 +50,10 @@ class ImageViewer(QMainWindow):
         super().showEvent(event)
         # Use a single-shot timer to ensure the widget is fully laid out
         QTimer.singleShot(100, self.display_image)
+
+    def resizeEvent(self, event):
+        """Called when the widget is resized - this ensures proper sizing"""
+        self.display_image()
 
     def _connect_video_thread(self):
         self.thread = VideoThread(0)
