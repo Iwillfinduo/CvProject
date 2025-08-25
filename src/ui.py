@@ -1,7 +1,8 @@
 from PySide6.QtCore import (QCoreApplication, QMetaObject, QRect,
                             Qt)
 from PySide6.QtGui import (QAction)
-from PySide6.QtWidgets import (QHBoxLayout, QLabel, QMenu, QMenuBar, QPushButton, QSlider, QStatusBar, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QHBoxLayout, QLabel, QMenu, QMenuBar, QPushButton, QSlider, QStatusBar, QVBoxLayout,
+                               QWidget)
 
 
 class Ui_MainWindow(object):

@@ -9,6 +9,7 @@ from PySide6.QtGui import QImage, QPixmap
 
 class OpenCVToQtAdapter:
     '''Статический класс с вспомогательными статическими функциями'''
+
     @staticmethod
     def convert_cv_to_qt(cv_img: np.ndarray, swap_rgb=True, mirror=False) -> QPixmap:
         """
@@ -76,7 +77,7 @@ class OpenCVToQtAdapter:
 
             if w > max_length:
                 max_length = w
-        if sys.platform  == 'linux':
+        if sys.platform == 'linux':
             text_thresh = thresh.copy()
             text_thresh = cv.bitwise_not(text_thresh)
         else:

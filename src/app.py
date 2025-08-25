@@ -1,14 +1,12 @@
 import os
 import sys
-from time import sleep
 
-from PIL.ImageQt import QImage, QPixmap
 from PySide6.QtCore import Qt, Slot, QTimer, QSize
 from PySide6.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QProgressDialog
 
+from ObjectClasses import Image, VideoThread
 from ui import Ui_MainWindow
 from utils import OpenCVToQtAdapter
-from ObjectClasses import Image, VideoThread
 
 filename = 'placeholder.png'
 
@@ -79,7 +77,6 @@ class ImageViewer(QMainWindow):
             pixmap.scaled(self.ui.pixmap_label.width(), self.ui.pixmap_label.height(), Qt.KeepAspectRatio,
                           Qt.SmoothTransformation))
 
-
     def _apply_second_auto_gamma(self):
         if self.ui.pushButton_2.isChecked():
             self.ui.pushButton.setChecked(False)
@@ -143,13 +140,13 @@ class ImageViewer(QMainWindow):
             gamma_img = gamma_img.apply_contours()
             is_contours = True
         pixmap = gamma_img.get_pixmap(use_contours=is_contours)
-        
+
         # Check if the label has proper dimensions before scaling
         if self.ui.pixmap_label.width() > 0 and self.ui.pixmap_label.height() > 0:
             # Always scale the image to fit the label properly
             scaled_pixmap = pixmap.scaled(
-                self.ui.pixmap_label.width(), 
-                self.ui.pixmap_label.height(), 
+                self.ui.pixmap_label.width(),
+                self.ui.pixmap_label.height(),
                 Qt.KeepAspectRatio,
                 Qt.SmoothTransformation
             )
@@ -157,7 +154,7 @@ class ImageViewer(QMainWindow):
         else:
             # If label dimensions are not ready, just set the pixmap without scaling
             self.ui.pixmap_label.setPixmap(pixmap)
-        
+
         self.image_init_flag = True
 
     def _calculate_area(self):

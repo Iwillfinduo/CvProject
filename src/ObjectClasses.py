@@ -1,18 +1,16 @@
 import cv2
 import cv2 as cv
-from PIL.ImageQt import QPixmap
+import numpy as np
 from PySide6.QtCore import QThread, Signal
-from PySide6.QtGui import QImage
 
 from utils import OpenCVToQtAdapter
-import numpy as np
-
 
 
 class Image:
     '''Класс для удобного взаимодействия с изображением
      и изменения его параметров без создания высокой связности
      QT приложения(теперь QT App делает 0 вызовов к opencv)'''
+
     def __init__(self, image_path, image=None):
         if image is None:
             image = cv.imread(image_path, cv.IMREAD_GRAYSCALE)
@@ -22,7 +20,7 @@ class Image:
         self.processed_image = None
         self.image_with_contours = None
 
-    #Getters, setters and simple staff:
+    # Getters, setters and simple staff:
     def get_image(self):
         return self.image
 
@@ -76,7 +74,7 @@ class Image:
             for contour in self.contours:
                 summ_of_areas += cv.contourArea(contour)
             if unit_factor:
-                areas_in_units = summ_of_areas * (unit_factor)**2
+                areas_in_units = summ_of_areas * (unit_factor) ** 2
             return summ_of_areas, areas_in_units
         else:
             return -1, -1
@@ -102,7 +100,7 @@ class Image:
         return Image(self.image_path, (stretched * 255).astype(np.uint8))
 
     def _calculate_gamma_from_contour_graph(self, min_gamma=1.0, max_gamma=10.0, area_difference_coefficient=10 ** 6,
-                                           modal_window=None):
+                                            modal_window=None):
         # DEPRECATED
         prev_area = 0.0
         num = 0
@@ -124,7 +122,7 @@ class Image:
         return min_gamma
 
     def calculate_gamma_from_contour_graph(self, min_gamma=1.0, max_gamma=10.0, area_difference_coefficient=20,
-                                            modal_window=None):
+                                           modal_window=None):
         # DEPRECATED
         prev_area = 0.0
         num = 0
@@ -133,20 +131,20 @@ class Image:
             self.apply_gamma(gamma)
             contour_img = self.apply_contours()
             current_area, _ = contour_img.calculate_area()
-            if prev_area/current_area > area_difference_coefficient:
+            if prev_area / current_area > area_difference_coefficient:
                 if modal_window is not None:
                     modal_window.setValue(100)
                 return gamma + 0.1
             if modal_window is not None:
                 modal_window.setValue(num)
-            #print(prev_area/current_area, gamma)
+            # print(prev_area/current_area, gamma)
             prev_area = current_area
             num += 1
             gamma += 0.1
         return min_gamma
 
     def calculate_gamma_from_contour_graph_with_std(self, min_gamma=1.0, max_gamma=10.0, area_difference_coefficient=20,
-                                            modal_window=None):
+                                                    modal_window=None):
         '''Предподсчитывает все значения площадей в зависимости от гаммы
          и ищет максимальное стандартное квадратичное отклонение окна'''
         num = 0
@@ -160,14 +158,15 @@ class Image:
             # print(prev_area/current_area, gamma)
             num += 1
             if modal_window is not None:
-                modal_window.setValue(num * 100 / ((max_gamma - min_gamma)/0.1))
+                modal_window.setValue(num * 100 / ((max_gamma - min_gamma) / 0.1))
             gamma += 0.1
-        return  min_gamma + 0.1 * OpenCVToQtAdapter.find_std_deviation(areas)
+        return min_gamma + 0.1 * OpenCVToQtAdapter.find_std_deviation(areas)
+
 
 class VideoThread(QThread):
     frame_ready = Signal(Image)
 
-    def __init__(self, video_source = 0):
+    def __init__(self, video_source=0):
         super().__init__()
         self.video_source = video_source
         self.running = False
@@ -181,12 +180,13 @@ class VideoThread(QThread):
             ret, frame = cap.read()
             if ret:
                 gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
-                image = Image('',gray)
+                image = Image('', gray)
                 self.frame_ready.emit(image)
             else:
                 print("can't read video source frame")
                 break
         cap.release()
+
     def stop(self):
         self.running = False
         self.wait()
