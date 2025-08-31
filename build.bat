@@ -77,7 +77,7 @@ if errorlevel 1 (
 
 echo Копируем дополнительные файлы...
 
-copy "src/%COPY_FILE%" "dist/%COPY_FILE%"
+copy "src\%COPY_FILE%" "dist\%COPY_FILE%"
 echo Файл %COPY_FILE% скопирован в dist/
 
 
