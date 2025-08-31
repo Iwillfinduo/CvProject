@@ -76,12 +76,10 @@ if errorlevel 1 (
 )
 
 echo Копируем дополнительные файлы...
-if exist "%COPY_FILE%" (
-    copy "src/%COPY_FILE%" "dist/%COPY_FILE%"
-    echo Файл %COPY_FILE% скопирован в dist/
-) else (
-    echo Внимание: Файл %COPY_FILE% не найден, пропускаем копирование
-)
+
+copy "src/%COPY_FILE%" "dist/%COPY_FILE%"
+echo Файл %COPY_FILE% скопирован в dist/
+
 
 echo ========================================
 echo    Сборка завершена успешно!
