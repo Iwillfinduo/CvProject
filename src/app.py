@@ -1,11 +1,13 @@
 import os
 import sys
+import time
 
 from PySide6.QtCore import Qt, Slot, QTimer, QSize
-from PySide6.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QProgressDialog
+from PySide6.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QProgressDialog, QWidget, QDialog
+from PySide6.QtMultimedia import QCameraDevice, QMediaDevices
 
 from ObjectClasses import Image, VideoThread
-from ui import Ui_MainWindow
+from ui import Ui_MainWindow, ChooseCameraDialog
 from utils import OpenCVToQtAdapter
 
 filename = 'placeholder.png'
@@ -54,9 +56,19 @@ class ImageViewer(QMainWindow):
         self.display_image()
 
     def _connect_video_thread(self):
-        self.thread = VideoThread(0)
-        self.thread.frame_ready.connect(self.display_video_slot)
-        self.thread.start()
+        modal = ChooseCameraLogic(parent=self)
+        thread_id = modal.get_chosen_camera()
+        print(thread_id)
+
+        if thread_id is not None:
+            if self.thread is not None:
+                self.thread.stop()
+            self.thread = None
+            self.thread = VideoThread(thread_id)
+            self.thread.frame_ready.connect(self.display_video_slot)
+            self.thread.start()
+
+        print(self.thread)
 
     @Slot(Image)
     def display_video_slot(self, image):
@@ -195,6 +207,39 @@ class ImageViewer(QMainWindow):
     def _update_gamma(self):
         self.ui.gamma_label.setText(f'{self.gamma:.2f}')
         self.ui.gamma_slider.setValue(int(self.gamma * 10))
+
+class ChooseCameraLogic(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent=parent)
+        self.setModal(True)
+        self.ui = ChooseCameraDialog()
+        self.ui.setupUi(self)
+        inputs = QMediaDevices.videoInputs()
+        self.ids = []
+        for input in inputs:
+            self.ui.comboBox.addItem(input.description())
+            self.ids.append(int(''.join(filter(str.isdigit, str(input.id().toStdString())))))
+
+        print(self.ids)
+        self.choose = None
+
+        self.ui.buttonBox.accepted.connect(self.accept)
+        self.ui.buttonBox.rejected.connect(self.reject)
+        self.exec()
+
+
+    def accept(self):
+        self.choose = self.ids[self.ui.comboBox.currentIndex()]
+        self.close()
+
+    def discard(self):
+        self.close()
+
+    def get_chosen_camera(self, parent=None):
+        return self.choose
+
+
+
 
 
 if __name__ == "__main__":
