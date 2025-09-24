@@ -173,6 +173,7 @@ class VideoThread(QThread):
 
     def run(self):
         cap = cv2.VideoCapture(self.video_source)
+        self.cap = cap
         if not cap.isOpened():
             raise RuntimeError('Cannot open video source')
         self.running = True
@@ -185,8 +186,15 @@ class VideoThread(QThread):
             else:
                 print("can't read video source frame")
                 break
+        ret, frame = self.cap.read()
+        if ret:
+            gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
+            self.last_image = Image('', gray)
         cap.release()
 
     def stop(self):
         self.running = False
         self.wait()
+        last_image = self.last_image
+        self.last_image = None
+        return last_image

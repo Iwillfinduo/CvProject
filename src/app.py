@@ -56,10 +56,12 @@ class ImageViewer(QMainWindow):
         self.display_image()
 
     def _connect_video_thread(self):
+
         modal = ChooseCameraLogic(parent=self)
         thread_id = modal.get_chosen_camera()
         print(thread_id)
-
+        self.ui.add_snap_button()
+        self.ui.snap_pushButton.clicked.connect(self._snap_camera)
         if thread_id is not None:
             if self.thread is not None:
                 self.thread.stop()
@@ -69,12 +71,8 @@ class ImageViewer(QMainWindow):
             self.thread.start()
 
         print(self.thread)
-
-    @Slot(Image)
-    def display_video_slot(self, image):
-        if self.thread is None:
-            return
-        self.image = image
+    def get_filtered_pixmap(self):
+        image = self.image
         if self.ui.pushButton.isChecked():
             image = image.stretch_bright_region(threshold=self.first_parameter)
 
@@ -84,7 +82,14 @@ class ImageViewer(QMainWindow):
         if self.ui.apply_countour_button.isChecked():
             image = image.apply_contours()
             is_contours = True
-        pixmap = image.get_pixmap(use_contours=is_contours)
+        return image.get_pixmap(use_contours=is_contours)
+
+    @Slot(Image)
+    def display_video_slot(self, image):
+        if self.thread is None:
+            return
+        self.image = image
+        pixmap = self.get_filtered_pixmap()
         self.ui.pixmap_label.setPixmap(
             pixmap.scaled(self.ui.pixmap_label.width(), self.ui.pixmap_label.height(), Qt.KeepAspectRatio,
                           Qt.SmoothTransformation))
@@ -119,10 +124,22 @@ class ImageViewer(QMainWindow):
             self.ui.gamma_label.setText(str(gamma))
         self.display_image()
 
+    def _snap_camera(self):
+        if self.ui.snap_pushButton.isChecked():
+            last_image = self.thread.stop()
+            self.image = last_image
+            pixmap = self.get_filtered_pixmap()
+            self.ui.pixmap_label.setPixmap(
+                pixmap.scaled(self.ui.pixmap_label.width(), self.ui.pixmap_label.height(), Qt.KeepAspectRatio,
+                              Qt.SmoothTransformation))
+        else:
+            self.thread.start()
+
     def _open_file(self):
         filename = QFileDialog.getOpenFileName(self, 'Open file', os.getcwd(),
                                                'Image Files (*.png *.jpg *.bmp)')
         print(filename)
+        self.ui.delete_snap_button()
         if filename[0]:
             if self.thread is not None:
                 self.thread.stop()

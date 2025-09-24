@@ -142,6 +142,20 @@ class Ui_MainWindow(object):
         self.menuFIle.setTitle(QCoreApplication.translate("MainWindow", u"FIle", None))
     # retranslateUi
 
+    def add_snap_button(self):
+        self.horizontalLayout_6 = QHBoxLayout()
+        self.snap_pushButton = QPushButton('Snap')
+        self.snap_pushButton.setCheckable(True)
+        self.horizontalLayout_6.setContentsMargins(250, -1, 250, -1)
+        self.horizontalLayout_6.addWidget(self.snap_pushButton)
+
+        self.verticalLayout.insertLayout(1, self.horizontalLayout_6)
+
+
+    def delete_snap_button(self):
+        if self.horizontalLayout_6 is not None:
+            self.horizontalLayout_6.deleteLater()
+            self.snap_pushButton.deleteLater()
 
 class ChooseCameraDialog(object):
     def setupUi(self, Dialog):
