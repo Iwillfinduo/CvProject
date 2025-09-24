@@ -60,9 +60,9 @@ class ImageViewer(QMainWindow):
         modal = ChooseCameraLogic(parent=self)
         thread_id = modal.get_chosen_camera()
         print(thread_id)
-        self.ui.add_snap_button()
-        self.ui.snap_pushButton.clicked.connect(self._snap_camera)
         if thread_id is not None:
+            self.ui.add_snap_button()
+            self.ui.snap_pushButton.clicked.connect(self._snap_camera)
             if self.thread is not None:
                 self.thread.stop()
             self.thread = None

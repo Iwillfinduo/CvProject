@@ -1,9 +1,12 @@
+from typing import Optional
+
 import cv2
 import cv2 as cv
 import numpy as np
 from PySide6.QtCore import QThread, Signal
-
+from harvesters.core import Harvester
 from utils import OpenCVToQtAdapter
+
 
 
 class Image:
@@ -198,3 +201,95 @@ class VideoThread(QThread):
         last_image = self.last_image
         self.last_image = None
         return last_image
+
+
+# UNTESTED
+class HikrobotThread(QThread):
+    frame_ready = Signal(Image)  # OpenCV image as custom class (grayscale)
+
+    def __init__(self, cti_file: Optional[str] = None, camera_index: int = 0):
+        super().__init__()
+        self.cti_file = cti_file
+        self.camera_index = camera_index
+        self.running = False
+        self.harvester = None
+        self.ia = None
+        self.last_frame = None
+
+    def run(self):
+        try:
+            self.harvester = Harvester()
+
+            if self.cti_file:
+                self.harvester.add_file(self.cti_file)
+            else:
+                self.harvester.add_file('/opt/mvIMPACT_Acquire/lib/x86_64/mvGenTLProducer.cti')
+
+            self.harvester.update()
+
+            if len(self.harvester.device_info_list) == 0:
+                raise RuntimeError('Cannot open camera - no devices found')
+
+            self.ia = self.harvester.create_image_acquirer(self.camera_index)
+            self.ia.start_image_acquisition()
+
+            self.running = True
+            while self.running:
+                with self.ia.fetch_buffer(timeout=1.0) as buffer:
+                    component = buffer.payload.components[0]
+                    frame = component.data.reshape(component.height, component.width)
+
+                    # Конвертация в черно-белое
+                    gray = self._convert_to_grayscale(frame, component.data_format)
+                    image = Image('', gray)
+                    self.frame_ready.emit(image)
+
+        except Exception as e:
+            print(f"Camera error: {e}")
+        finally:
+            # Захватываем последний кадр перед освобождением ресурсов
+            try:
+                if self.ia:
+                    with self.ia.fetch_buffer(timeout=1.0) as buffer:
+                        component = buffer.payload.components[0]
+                        frame = component.data.reshape(component.height, component.width)
+                        gray = self._convert_to_grayscale(frame, component.data_format)
+                        self.last_frame = gray
+            except:
+                self.last_frame = None
+
+            self._cleanup()
+
+    def _convert_to_grayscale(self, frame: np.ndarray, data_format: str) -> np.ndarray:
+        """Конвертация кадра в черно-белое"""
+        if len(frame.shape) == 2:  # Уже монохромное
+            return frame
+        elif data_format == 'BayerRG8':
+            bgr_frame = cv2.cvtColor(frame, cv2.COLOR_BAYER_RG2BGR)
+            return cv2.cvtColor(bgr_frame, cv2.COLOR_BGR2GRAY)
+        elif len(frame.shape) == 3:
+            return cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        else:
+            return frame.astype(np.uint8)
+
+    def _cleanup(self):
+        """Очистка ресурсов"""
+        if self.ia:
+            try:
+                self.ia.stop_image_acquisition()
+                self.ia.destroy()
+            except Exception as e:
+                print(f"Camera error: {e}")
+        if self.harvester:
+            try:
+                self.harvester.reset()
+            except Exception as e:
+                print(f"Camera error: {e}")
+
+    def stop(self):
+        """Остановка потока и возврат последнего кадра"""
+        self.running = False
+        self.wait()
+        last_frame = self.last_frame
+        self.last_frame = None
+        return last_frame
