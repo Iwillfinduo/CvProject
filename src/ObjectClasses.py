@@ -230,12 +230,12 @@ class HikrobotThread(QThread):
             if len(self.harvester.device_info_list) == 0:
                 raise RuntimeError('Cannot open camera - no devices found')
 
-            self.ia = self.harvester.create_image_acquirer(self.camera_index)
-            self.ia.start_image_acquisition()
+            self.ia = self.harvester.create(self.camera_index)
+            self.ia.start()
 
             self.running = True
             while self.running:
-                with self.ia.fetch_buffer(timeout=1.0) as buffer:
+                with self.ia.fetch(timeout=1.0) as buffer:
                     component = buffer.payload.components[0]
                     frame = component.data.reshape(component.height, component.width)
 
