@@ -68,11 +68,12 @@ class ImageViewer(QMainWindow):
             modal = ChooseCameraLogic(parent=self, inputs={'ids': ids, 'names': models})
             thread_id = modal.get_chosen_camera()
             if thread_id is not None:
-                self.ui.add_snap_button()
-                self.ui.snap_pushButton.clicked.connect(self._snap_camera)
                 if self.thread is not None:
                     self.thread.stop()
                     self.ui.delete_snap_button()
+                self.ui.add_snap_button()
+                self.ui.snap_pushButton.clicked.connect(self._snap_camera)
+
                 self.thread = None
                 self.thread = HikrobotThread(filename[0], thread_id)
                 self.thread.frame_ready.connect(self.display_video_slot)
@@ -85,11 +86,12 @@ class ImageViewer(QMainWindow):
         thread_id = modal.get_chosen_camera()
         print(thread_id)
         if thread_id is not None:
-            self.ui.add_snap_button()
-            self.ui.snap_pushButton.clicked.connect(self._snap_camera)
             if self.thread is not None:
                 self.thread.stop()
                 self.ui.delete_snap_button()
+            self.ui.add_snap_button()
+            self.ui.snap_pushButton.clicked.connect(self._snap_camera)
+
             self.thread = None
             self.thread = VideoThread(thread_id)
             self.thread.frame_ready.connect(self.display_video_slot)
