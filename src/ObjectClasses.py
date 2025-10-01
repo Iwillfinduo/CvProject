@@ -331,4 +331,4 @@ class HikrobotThread(QThread):
         self.wait()
         last_frame = self.last_frame
         self.last_frame = None
-        return last_frame
+        return Image('',last_frame)

@@ -23,7 +23,7 @@ class MockHikrobotThread(QThread):
 
         # Параметры для генерации тестовых изображений
         self.test_patterns = ['chessboard', 'gradient', 'circles', 'noise', 'color_bars']
-        self.current_pattern = 'gradient'
+        self.current_pattern = 'color_bars'
 
     @staticmethod
     def get_devices(cti_file: Optional[str] = None) -> List[Dict[str, Any]]:
@@ -197,7 +197,7 @@ class MockHikrobotThread(QThread):
         self.wait()
         last_frame = self.last_frame
         self.last_frame = None
-        return last_frame
+        return Image('',last_frame)
 
     def set_resolution(self, width: int, height: int):
         """Установка разрешения"""
