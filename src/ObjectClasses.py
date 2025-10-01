@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 
 import cv2
 import cv2 as cv
@@ -6,7 +6,6 @@ import numpy as np
 from PySide6.QtCore import QThread, Signal
 from harvesters.core import Harvester
 from utils import OpenCVToQtAdapter
-
 
 
 class Image:
@@ -215,6 +214,46 @@ class HikrobotThread(QThread):
         self.harvester = None
         self.ia = None
         self.last_frame = None
+
+    @staticmethod
+    def get_devices(cti_file: Optional[str] = None):
+        """
+        Возвращает список доступных устройств в виде строк
+
+        Args:
+            cti_file: Путь к CTI файлу
+
+        Returns:
+            List[str]: Список строк с описанием устройств
+        """
+        harvester = None
+        try:
+            harvester = Harvester()
+
+            if cti_file:
+                harvester.add_file(cti_file)
+            else:
+                harvester.add_file('/opt/mvIMPACT_Acquire/lib/x86_64/mvGenTLProducer.cti')
+
+            harvester.update()
+
+            devices = []
+            for i, device_info in enumerate(harvester.device_info_list):
+                device_str = f"Index {i}: {getattr(device_info, 'vendor', 'Unknown')} {getattr(device_info, 'model', 'Unknown')} (SN: {getattr(device_info, 'serial_number', 'Unknown')})"
+                devices.append(device_str)
+
+            return devices
+
+        except Exception as e:
+            print(f"Error getting devices: {e}")
+            return []
+
+        finally:
+            if harvester:
+                try:
+                    harvester.reset()
+                except Exception as e:
+                    print(f"Error cleaning up harvester: {e}")
 
     def run(self):
         try:

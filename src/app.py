@@ -9,6 +9,7 @@ from PySide6.QtMultimedia import QCameraDevice, QMediaDevices
 from ObjectClasses import Image, VideoThread
 from ui import Ui_MainWindow, ChooseCameraDialog
 from utils import OpenCVToQtAdapter
+from mock import HikrobotThread
 
 filename = 'placeholder.png'
 
@@ -43,6 +44,7 @@ class ImageViewer(QMainWindow):
         self.ui.pushButton_2.clicked.connect(self._apply_second_auto_gamma)
         self.ui.actionAuto_Gamma_by_area.triggered.connect(self._auto_gamma_by_area)
         self.ui.pixmap_label.setMinimumSize(QSize(200, 200))
+        self.ui.actionConnect_cti_file.triggered.connect(self._connect_cti_file)
         # Don't call display_image() here - wait for the widget to be properly sized
 
     def showEvent(self, event):
@@ -55,6 +57,28 @@ class ImageViewer(QMainWindow):
         """Called when the widget is resized - this ensures proper sizing"""
         self.display_image()
 
+    def _connect_cti_file(self):
+        filename = QFileDialog.getOpenFileName(self, 'Open file', os.getcwd(),
+                                               'Cti File (*.cti)')
+        print(filename)
+        if filename[0]:
+            devices = HikrobotThread.get_devices(filename[0])
+            ids = [device['index'] for device in devices]
+            models = [device['model'] for device in devices]
+            modal = ChooseCameraLogic(parent=self, inputs={'ids': ids, 'names': models})
+            thread_id = modal.get_chosen_camera()
+            if thread_id is not None:
+                self.ui.add_snap_button()
+                self.ui.snap_pushButton.clicked.connect(self._snap_camera)
+                if self.thread is not None:
+                    self.thread.stop()
+                    self.ui.delete_snap_button()
+                self.thread = None
+                self.thread = HikrobotThread(filename[0], thread_id)
+                self.thread.frame_ready.connect(self.display_video_slot)
+                self.thread.start()
+
+
     def _connect_video_thread(self):
 
         modal = ChooseCameraLogic(parent=self)
@@ -65,6 +89,7 @@ class ImageViewer(QMainWindow):
             self.ui.snap_pushButton.clicked.connect(self._snap_camera)
             if self.thread is not None:
                 self.thread.stop()
+                self.ui.delete_snap_button()
             self.thread = None
             self.thread = VideoThread(thread_id)
             self.thread.frame_ready.connect(self.display_video_slot)
@@ -226,16 +251,20 @@ class ImageViewer(QMainWindow):
         self.ui.gamma_slider.setValue(int(self.gamma * 10))
 
 class ChooseCameraLogic(QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, inputs:dict=None):
         super().__init__(parent=parent)
         self.setModal(True)
         self.ui = ChooseCameraDialog()
         self.ui.setupUi(self)
-        inputs = QMediaDevices.videoInputs()
         self.ids = []
-        for input in inputs:
-            self.ui.comboBox.addItem(input.description())
-            self.ids.append(int(''.join(filter(str.isdigit, str(input.id().toStdString())))))
+        if inputs is None:
+            inputs = QMediaDevices.videoInputs()
+            for input in inputs:
+                self.ui.comboBox.addItem(input.description())
+                self.ids.append(int(''.join(filter(str.isdigit, str(input.id().toStdString())))))
+        else:
+            self.ids = inputs['ids']
+            self.ui.comboBox.addItems(inputs['names'])
 
         print(self.ids)
         self.choose = None
