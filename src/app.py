@@ -46,8 +46,8 @@ class ImageViewer(QMainWindow):
         self.ui.actionCalculate_the_area.triggered.connect(self._calculate_area)
         self.ui.actionConnect_Camera.triggered.connect(self._connect_video_thread)
         self.ui.actionOpen_Calibration_Image.triggered.connect(self._calibrate_area)
-        self.ui.pushButton.clicked.connect(self._apply_first_auto_gamma)
-        self.ui.pushButton_2.clicked.connect(self._apply_second_auto_gamma)
+        self.ui.pushButton.toggled.connect(self._apply_first_auto_gamma_toggled)
+        self.ui.pushButton_2.toggled.connect(self._apply_second_auto_gamma_toggled)
         self.ui.actionAuto_Gamma_by_area.triggered.connect(self._auto_gamma_by_area)
         self.ui.pixmap_label.setMinimumSize(QSize(200, 200))
         self.ui.actionConnect_cti_file.triggered.connect(self._connect_cti_file)
@@ -75,9 +75,7 @@ class ImageViewer(QMainWindow):
             else:
                 # Выключили контуры -> возобновляем видео
                 self._restart_camera()
-        else:
-            # Режим файла: просто п��рерисовываем
-            self.display_image()
+        self.display_image()
 
     def _pause_camera(self):
         """Остановка камеры и захват последнего кадра"""
@@ -87,14 +85,18 @@ class ImageViewer(QMainWindow):
                 self.image = last_image
         self.display_image()
 
+    def _check_buttons(self) -> bool:
+        return self.ui.apply_countour_button.isChecked() or self.ui.pushButton.isChecked() or self.ui.pushButton_2.isChecked()
+
     def _restart_camera(self):
         """Перезапуск камеры"""
-        if self._camera_cti_file is not None:
-            # Hikrobot камера
-            self._start_hikrobot_camera()
-        elif self._camera_index is not None:
-            # Обычная камера
-            self._start_video_camera()
+        if not self._check_buttons():
+            if self._camera_cti_file is not None:
+                # Hikrobot камера
+                self._start_hikrobot_camera()
+            elif self._camera_index is not None:
+                # Обычная камера
+                self._start_video_camera()
 
     def _start_hikrobot_camera(self):
         """Запуск Hikrobot камеры"""
@@ -261,7 +263,7 @@ class ImageViewer(QMainWindow):
 
             self.display_image()
 
-    # ==================== Остальные методы без изменений ====================
+    # ==================== Остальные методы ====================
 
     def _slider_move(self):
         if not self.auto_gamma_flag and self.processed_image is None:
@@ -270,23 +272,35 @@ class ImageViewer(QMainWindow):
             self.ui.gamma_label.setText(str(gamma))
         self.display_image()
 
-    def _apply_second_auto_gamma(self):
-        if self.ui.pushButton_2.isChecked():
+    def _apply_second_auto_gamma_toggled(self, checked: bool):
+        if self._is_camera_mode:
+            if checked:
+                self._pause_camera()
+
+            else:
+                self._restart_camera()
+
+        if checked:
             self.ui.pushButton.setChecked(False)
-            self._apply_first_auto_gamma()
             self.auto_gamma_flag = True
             self.gamma = self.image.gamma_from_high_percentile(target=self.second_parameter)
             self.ui.label_3.setText(f"Auto gamma set to {self.gamma:.2f}")
             self._update_gamma()
         else:
+            self._restart_camera()
             self.auto_gamma_flag = False
         self.display_image()
 
-    def _apply_first_auto_gamma(self):
-        if self.ui.pushButton.isChecked():
+    def _apply_first_auto_gamma_toggled(self, checked: bool):
+        if self._is_camera_mode:
+            if checked:
+                self._pause_camera()
+            else:
+                self._restart_camera()
+
+        if checked:
             self.ui.pushButton_2.setChecked(False)
             self.auto_gamma_flag = False
-            self._apply_second_auto_gamma()
             self.processed_image = self.image.stretch_bright_region(threshold=self.first_parameter)
         else:
             self.processed_image = None
@@ -330,6 +344,8 @@ class ImageViewer(QMainWindow):
         message_box.exec()
 
     def _auto_gamma_by_area(self):
+        if self._is_camera_mode:
+            self._pause_camera()
         progress_dialog = QProgressDialog()
         progress_dialog.setWindowTitle('Auto gamma')
         progress_dialog.setValue(0)
@@ -343,6 +359,8 @@ class ImageViewer(QMainWindow):
         gamma = image.calculate_gamma_from_contour_graph_with_std(max_gamma=15, modal_window=progress_dialog)
         self.gamma = gamma
         self._update_gamma()
+        if self._is_camera_mode:
+            self._restart_camera()
         self.display_image()
 
     def _update_gamma(self):
