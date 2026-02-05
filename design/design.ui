@@ -32,7 +32,7 @@
         <item>
          <widget class="QLabel" name="label_2">
           <property name="text">
-           <string>TextLabel</string>
+           <string/>
           </property>
           <property name="alignment">
            <set>Qt::AlignmentFlag::AlignCenter</set>
@@ -56,7 +56,7 @@
         <item>
          <widget class="QLabel" name="label_3">
           <property name="text">
-           <string>TextLabel</string>
+           <string/>
           </property>
           <property name="alignment">
            <set>Qt::AlignmentFlag::AlignCenter</set>
@@ -126,7 +126,7 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>33</height>
+     <height>23</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFunctions">
@@ -145,6 +145,7 @@
     <addaction name="actionOpen_Calibration_Image"/>
     <addaction name="actionConnect_Camera"/>
     <addaction name="separator"/>
+    <addaction name="actionConnect_cti_file"/>
    </widget>
    <addaction name="menuFIle"/>
    <addaction name="menuFunctions"/>
@@ -172,7 +173,12 @@
   </action>
   <action name="actionConnect_Camera">
    <property name="text">
-    <string>Connect Camera</string>
+    <string>Connect Basic Camera</string>
+   </property>
+  </action>
+  <action name="actionConnect_cti_file">
+   <property name="text">
+    <string>Connect .cti file</string>
    </property>
   </action>
  </widget>

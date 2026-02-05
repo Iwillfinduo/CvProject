@@ -21,6 +21,8 @@ class Ui_MainWindow(object):
         self.actionAuto_Gamma_by_area.setObjectName(u"actionAuto_Gamma_by_area")
         self.actionConnect_Camera = QAction(MainWindow)
         self.actionConnect_Camera.setObjectName(u"actionConnect_Camera")
+        self.actionConnect_cti_file = QAction(MainWindow)
+        self.actionConnect_cti_file.setObjectName(u"actionConnect_cti_file")
         self.centralwidget = QWidget(MainWindow)
         self.centralwidget.setObjectName(u"centralwidget")
         self.verticalLayout_2 = QVBoxLayout(self.centralwidget)
@@ -97,7 +99,7 @@ class Ui_MainWindow(object):
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QMenuBar(MainWindow)
         self.menubar.setObjectName(u"menubar")
-        self.menubar.setGeometry(QRect(0, 0, 800, 33))
+        self.menubar.setGeometry(QRect(0, 0, 800, 23))
         self.menuFunctions = QMenu(self.menubar)
         self.menuFunctions.setObjectName(u"menuFunctions")
         self.menuFIle = QMenu(self.menubar)
@@ -116,6 +118,7 @@ class Ui_MainWindow(object):
         self.menuFIle.addAction(self.actionOpen_Calibration_Image)
         self.menuFIle.addAction(self.actionConnect_Camera)
         self.menuFIle.addSeparator()
+        self.menuFIle.addAction(self.actionConnect_cti_file)
 
         self.retranslateUi(MainWindow)
 
@@ -130,11 +133,12 @@ class Ui_MainWindow(object):
         self.actionOpen_Calibration_Image.setText(
             QCoreApplication.translate("MainWindow", u"Open Calibration Image", None))
         self.actionAuto_Gamma_by_area.setText(QCoreApplication.translate("MainWindow", u"Auto Gamma by area", None))
-        self.actionConnect_Camera.setText(QCoreApplication.translate("MainWindow", u"Connect Camera", None))
+        self.actionConnect_Camera.setText(QCoreApplication.translate("MainWindow", u"Connect Basic Camera", None))
+        self.actionConnect_cti_file.setText(QCoreApplication.translate("MainWindow", u"Connect .cti file", None))
         self.pixmap_label.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
-        self.label_2.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
+        self.label_2.setText("")
         self.pushButton.setText(QCoreApplication.translate("MainWindow", u"AutoGamma1", None))
-        self.label_3.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
+        self.label_3.setText("")
         self.pushButton_2.setText(QCoreApplication.translate("MainWindow", u"AutoGamma2", None))
         self.gamma_label.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
         self.apply_countour_button.setText(QCoreApplication.translate("MainWindow", u"Apply Contour", None))
@@ -207,4 +211,3 @@ class ChooseCameraDialog(object):
     def retranslateUi(self, Dialog):
         Dialog.setWindowTitle(QCoreApplication.translate("Dialog", u"Dialog", None))
     # retranslateUi
-

@@ -1,9 +1,27 @@
+from dataclasses import dataclass
+from typing import Optional, List, Tuple
+
 import cv2
 import cv2 as cv
 import numpy as np
-from PySide6.QtCore import QThread, Signal
-
+from PySide6.QtCore import QThread, Signal, QMutex, QMutexLocker
+from harvesters.core import Harvester
 from utils import OpenCVToQtAdapter
+
+
+@dataclass
+class CameraParams:
+    """Параметры камеры"""
+    exposure: float = 10000.0  # мкс
+    gain: float = 0.0  # дБ
+    frame_rate: float = 30.0  # fps
+    width: int = 0
+    height: int = 0
+    offset_x: int = 0
+    offset_y: int = 0
+    auto_exposure: bool = False
+    auto_gain: bool = False
+    auto_white_balance: bool = False
 
 
 class Image:
@@ -99,49 +117,6 @@ class Image:
         stretched = np.clip((gray - threshold) / (1.0 - threshold), 0, 1)
         return Image(self.image_path, (stretched * 255).astype(np.uint8))
 
-    def _calculate_gamma_from_contour_graph(self, min_gamma=1.0, max_gamma=10.0, area_difference_coefficient=10 ** 6,
-                                            modal_window=None):
-        # DEPRECATED
-        prev_area = 0.0
-        num = 0
-        gamma = min_gamma
-        while gamma <= max_gamma:
-            self.apply_gamma(gamma)
-            contour_img = self.apply_contours()
-            current_area, _ = contour_img.calculate_area()
-            if prev_area - current_area > area_difference_coefficient:
-                if modal_window is not None:
-                    modal_window.setValue(100)
-                return gamma + 0.1
-            if modal_window is not None:
-                modal_window.setValue(num)
-            # print(prev_area - current_area, gamma)
-            prev_area = current_area
-            num += 1
-            gamma += 0.1
-        return min_gamma
-
-    def calculate_gamma_from_contour_graph(self, min_gamma=1.0, max_gamma=10.0, area_difference_coefficient=20,
-                                           modal_window=None):
-        # DEPRECATED
-        prev_area = 0.0
-        num = 0
-        gamma = min_gamma
-        while gamma <= max_gamma:
-            self.apply_gamma(gamma)
-            contour_img = self.apply_contours()
-            current_area, _ = contour_img.calculate_area()
-            if prev_area / current_area > area_difference_coefficient:
-                if modal_window is not None:
-                    modal_window.setValue(100)
-                return gamma + 0.1
-            if modal_window is not None:
-                modal_window.setValue(num)
-            # print(prev_area/current_area, gamma)
-            prev_area = current_area
-            num += 1
-            gamma += 0.1
-        return min_gamma
 
     def calculate_gamma_from_contour_graph_with_std(self, min_gamma=1.0, max_gamma=10.0, area_difference_coefficient=20,
                                                     modal_window=None):
@@ -198,3 +173,765 @@ class VideoThread(QThread):
         last_image = self.last_image
         self.last_image = None
         return last_image
+
+
+# UNTESTED
+class HikrobotThread(QThread):
+    frame_ready = Signal(object)
+    error_occurred = Signal(str)
+    params_changed = Signal(object)  # CameraParams
+
+    def __init__(self, cti_file: Optional[str] = None, camera_index: int = 0):
+        super().__init__()
+        self.cti_file = cti_file
+        self.camera_index = camera_index
+        self.running = False
+        self.harvester = None
+        self.ia = None
+        self.last_frame = None
+        self._mutex = QMutex()
+        self._params = CameraParams()
+        self._node_map = None
+
+    @staticmethod
+    def get_devices(cti_file: Optional[str] = None) -> List[str]:
+        """
+        Возвращает список доступных устройств в виде строк
+
+        Args:
+            cti_file: Путь к CTI файлу
+
+        Returns:
+            List[str]: Список строк с описанием устройств
+        """
+        harvester = None
+        try:
+            harvester = Harvester()
+
+            if cti_file:
+                harvester.add_file(cti_file)
+            else:
+                harvester.add_file('/opt/mvIMPACT_Acquire/lib/x86_64/mvGenTLProducer.cti')
+
+            harvester.update()
+
+            devices = []
+            for i, device_info in enumerate(harvester.device_info_list):
+                device_str = f"Index {i}: {getattr(device_info, 'vendor', 'Unknown')} {getattr(device_info, 'model', 'Unknown')} (SN: {getattr(device_info, 'serial_number', 'Unknown')})"
+                devices.append(device_str)
+
+            return devices
+
+        except Exception as e:
+            print(f"Error getting devices: {e}")
+            return []
+
+        finally:
+            if harvester:
+                try:
+                    harvester.reset()
+                except Exception as e:
+                    print(f"Error cleaning up harvester: {e}")
+
+    # ==================== Параметры экспозиции ====================
+
+    def set_exposure(self, exposure_us: float) -> bool:
+        """
+        Установка времени экспозиции
+
+        Args:
+            exposure_us: Время экспозиции в микросекундах
+
+        Returns:
+            bool: Успех операции
+        """
+        if not self._node_map:
+            return False
+
+        try:
+            # Отключаем автоэкспозицию
+            if hasattr(self._node_map, 'ExposureAuto'):
+                self._node_map.ExposureAuto.value = 'Off'
+
+            if hasattr(self._node_map, 'ExposureTime'):
+                self._node_map.ExposureTime.value = float(exposure_us)
+                self._params.exposure = exposure_us
+                self._params.auto_exposure = False
+                return True
+        except Exception as e:
+            print(f"Error setting exposure: {e}")
+        return False
+
+    def get_exposure(self) -> float:
+        """Получение текущего времени экспозиции в мкс"""
+        if not self._node_map:
+            return 0.0
+
+        try:
+            if hasattr(self._node_map, 'ExposureTime'):
+                self._params.exposure = self._node_map.ExposureTime.value
+                return self._params.exposure
+        except Exception as e:
+            print(f"Error getting exposure: {e}")
+        return 0.0
+
+    def get_exposure_range(self) -> Tuple[float, float]:
+        """Получение диапазона экспозиции (min, max) в мкс"""
+        if not self._node_map:
+            return (0.0, 0.0)
+
+        try:
+            if hasattr(self._node_map, 'ExposureTime'):
+                node = self._node_map.ExposureTime
+                return (node.min, node.max)
+        except Exception as e:
+            print(f"Error getting exposure range: {e}")
+        return (0.0, 0.0)
+
+    def set_auto_exposure(self, enable: bool, mode: str = 'continuous') -> bool:
+        """
+        Включение/выключение автоэкспозиции
+
+        Args:
+            enable: Включить/выключить
+            mode: 'off', 'once', 'continuous'
+        """
+        if not self._node_map:
+            return False
+
+        try:
+            if hasattr(self._node_map, 'ExposureAuto'):
+                if not enable:
+                    self._node_map.ExposureAuto.value = 'Off'
+                elif mode == 'once':
+                    self._node_map.ExposureAuto.value = 'Once'
+                else:
+                    self._node_map.ExposureAuto.value = 'Continuous'
+
+                self._params.auto_exposure = enable
+                return True
+        except Exception as e:
+            print(f"Error setting auto exposure: {e}")
+        return False
+
+    # ==================== Параметры усиления ====================
+
+    def set_gain(self, gain_db: float) -> bool:
+        """
+        Установка усиления
+
+        Args:
+            gain_db: Усиление в децибелах
+        """
+        if not self._node_map:
+            return False
+
+        try:
+            # Отключаем автоусиление
+            if hasattr(self._node_map, 'GainAuto'):
+                self._node_map.GainAuto.value = 'Off'
+
+            if hasattr(self._node_map, 'Gain'):
+                self._node_map.Gain.value = float(gain_db)
+                self._params.gain = gain_db
+                self._params.auto_gain = False
+                return True
+        except Exception as e:
+            print(f"Error setting gain: {e}")
+        return False
+
+    def get_gain(self) -> float:
+        """Получение текущего усиления в дБ"""
+        if not self._node_map:
+            return 0.0
+
+        try:
+            if hasattr(self._node_map, 'Gain'):
+                self._params.gain = self._node_map.Gain.value
+                return self._params.gain
+        except Exception as e:
+            print(f"Error getting gain: {e}")
+        return 0.0
+
+    def get_gain_range(self) -> Tuple[float, float]:
+        """Получение диапазона усиления (min, max) в дБ"""
+        if not self._node_map:
+            return (0.0, 0.0)
+
+        try:
+            if hasattr(self._node_map, 'Gain'):
+                node = self._node_map.Gain
+                return (node.min, node.max)
+        except Exception as e:
+            print(f"Error getting gain range: {e}")
+        return (0.0, 0.0)
+
+    def set_auto_gain(self, enable: bool, mode: str = 'continuous') -> bool:
+        """Включение/выключение автоусиления"""
+        if not self._node_map:
+            return False
+
+        try:
+            if hasattr(self._node_map, 'GainAuto'):
+                if not enable:
+                    self._node_map.GainAuto.value = 'Off'
+                elif mode == 'once':
+                    self._node_map.GainAuto.value = 'Once'
+                else:
+                    self._node_map.GainAuto.value = 'Continuous'
+
+                self._params.auto_gain = enable
+                return True
+        except Exception as e:
+            print(f"Error setting auto gain: {e}")
+        return False
+
+    # ==================== Частота кадров ====================
+
+    def set_frame_rate(self, fps: float) -> bool:
+        """Установка частоты кадров"""
+        if not self._node_map:
+            return False
+
+        try:
+            # Включаем управление частотой кадров
+            if hasattr(self._node_map, 'AcquisitionFrameRateEnable'):
+                self._node_map.AcquisitionFrameRateEnable.value = True
+
+            if hasattr(self._node_map, 'AcquisitionFrameRate'):
+                self._node_map.AcquisitionFrameRate.value = float(fps)
+                self._params.frame_rate = fps
+                return True
+        except Exception as e:
+            print(f"Error setting frame rate: {e}")
+        return False
+
+    def get_frame_rate(self) -> float:
+        """Получение текущей частоты кадров"""
+        if not self._node_map:
+            return 0.0
+
+        try:
+            # ResultingFrameRate - реальная частота кадров
+            if hasattr(self._node_map, 'ResultingFrameRate'):
+                return self._node_map.ResultingFrameRate.value
+            elif hasattr(self._node_map, 'AcquisitionFrameRate'):
+                return self._node_map.AcquisitionFrameRate.value
+        except Exception as e:
+            print(f"Error getting frame rate: {e}")
+        return 0.0
+
+    def get_frame_rate_range(self) -> Tuple[float, float]:
+        """Получение диапазона частоты кадров"""
+        if not self._node_map:
+            return (0.0, 0.0)
+
+        try:
+            if hasattr(self._node_map, 'AcquisitionFrameRate'):
+                node = self._node_map.AcquisitionFrameRate
+                return (node.min, node.max)
+        except Exception as e:
+            print(f"Error getting frame rate range: {e}")
+        return (0.0, 0.0)
+
+    # ==================== Разрешение и ROI ====================
+
+    def get_resolution(self) -> Tuple[int, int]:
+        """Получение текущего разрешения (width, height)"""
+        if not self._node_map:
+            return (0, 0)
+
+        try:
+            width = self._node_map.Width.value if hasattr(self._node_map, 'Width') else 0
+            height = self._node_map.Height.value if hasattr(self._node_map, 'Height') else 0
+
+            self._params.width = width
+            self._params.height = height
+
+            return (width, height)
+        except Exception as e:
+            print(f"Error getting resolution: {e}")
+        return (0, 0)
+
+    def get_max_resolution(self) -> Tuple[int, int]:
+        """Получение максимального разрешения"""
+        if not self._node_map:
+            return (0, 0)
+
+        try:
+            width = self._node_map.Width.max if hasattr(self._node_map, 'Width') else 0
+            height = self._node_map.Height.max if hasattr(self._node_map, 'Height') else 0
+            return (width, height)
+        except Exception as e:
+            print(f"Error getting max resolution: {e}")
+        return (0, 0)
+
+    def set_resolution(self, width: int, height: int) -> bool:
+        """
+        Установка разрешения
+
+        ВАЖНО: Нужно остановить захват перед изменением!
+        """
+        if not self._node_map:
+            return False
+
+        try:
+            was_running = self.running
+            if was_running and self.ia:
+                self.ia.stop()
+
+            if hasattr(self._node_map, 'Width'):
+                self._node_map.Width.value = width
+            if hasattr(self._node_map, 'Height'):
+                self._node_map.Height.value = height
+
+            self._params.width = width
+            self._params.height = height
+
+            if was_running and self.ia:
+                self.ia.start()
+
+            return True
+        except Exception as e:
+            print(f"Error setting resolution: {e}")
+        return False
+
+    def set_roi(self, x: int, y: int, width: int, height: int) -> bool:
+        """
+        Установка области интереса (ROI)
+
+        Args:
+            x: Смещение по X
+            y: Смещение по Y
+            width: Ширина ROI
+            height: Высота ROI
+        """
+        if not self._node_map:
+            return False
+
+        try:
+            was_running = self.running
+            if was_running and self.ia:
+                self.ia.stop()
+
+            # Сначала сбрасываем смещения
+            if hasattr(self._node_map, 'OffsetX'):
+                self._node_map.OffsetX.value = 0
+            if hasattr(self._node_map, 'OffsetY'):
+                self._node_map.OffsetY.value = 0
+
+            # Устанавливаем размеры
+            if hasattr(self._node_map, 'Width'):
+                self._node_map.Width.value = width
+            if hasattr(self._node_map, 'Height'):
+                self._node_map.Height.value = height
+
+            # Устанавливаем смещения
+            if hasattr(self._node_map, 'OffsetX'):
+                self._node_map.OffsetX.value = x
+            if hasattr(self._node_map, 'OffsetY'):
+                self._node_map.OffsetY.value = y
+
+            self._params.width = width
+            self._params.height = height
+            self._params.offset_x = x
+            self._params.offset_y = y
+
+            if was_running and self.ia:
+                self.ia.start()
+
+            return True
+        except Exception as e:
+            print(f"Error setting ROI: {e}")
+        return False
+
+    def reset_roi(self) -> bool:
+        """Сброс ROI на максимальное разрешение"""
+        max_w, max_h = self.get_max_resolution()
+        if max_w > 0 and max_h > 0:
+            return self.set_roi(0, 0, max_w, max_h)
+        return False
+
+    # ==================== Баланс белого ====================
+
+    def set_auto_white_balance(self, enable: bool, mode: str = 'continuous') -> bool:
+        """Включение/выключение автоматического баланса белого"""
+        if not self._node_map:
+            return False
+
+        try:
+            if hasattr(self._node_map, 'BalanceWhiteAuto'):
+                if not enable:
+                    self._node_map.BalanceWhiteAuto.value = 'Off'
+                elif mode == 'once':
+                    self._node_map.BalanceWhiteAuto.value = 'Once'
+                else:
+                    self._node_map.BalanceWhiteAuto.value = 'Continuous'
+
+                self._params.auto_white_balance = enable
+                return True
+        except Exception as e:
+            print(f"Error setting auto white balance: {e}")
+        return False
+
+    # ==================== Гамма ====================
+
+    def set_gamma(self, gamma: float) -> bool:
+        """Установка гамма-коррекции камеры"""
+        if not self._node_map:
+            return False
+
+        try:
+            if hasattr(self._node_map, 'GammaEnable'):
+                self._node_map.GammaEnable.value = True
+
+            if hasattr(self._node_map, 'Gamma'):
+                self._node_map.Gamma.value = float(gamma)
+                return True
+        except Exception as e:
+            print(f"Error setting gamma: {e}")
+        return False
+
+    def set_gamma_enabled(self, enable: bool) -> bool:
+        """Включение/выключение гамма-коррекции"""
+        if not self._node_map:
+            return False
+
+        try:
+            if hasattr(self._node_map, 'GammaEnable'):
+                self._node_map.GammaEnable.value = enable
+                return True
+        except Exception as e:
+            print(f"Error setting gamma enabled: {e}")
+        return False
+
+    # ==================== Триггер ====================
+
+    def set_trigger_mode(self, enable: bool) -> bool:
+        """Включение/выключение триггерного режима"""
+        if not self._node_map:
+            return False
+
+        try:
+            if hasattr(self._node_map, 'TriggerMode'):
+                self._node_map.TriggerMode.value = 'On' if enable else 'Off'
+                return True
+        except Exception as e:
+            print(f"Error setting trigger mode: {e}")
+        return False
+
+    def set_trigger_source(self, source: str = 'software') -> bool:
+        """
+        Установка источника триггера
+
+        Args:
+            source: 'software', 'line0', 'line1', 'line2'
+        """
+        if not self._node_map:
+            return False
+
+        try:
+            if hasattr(self._node_map, 'TriggerSource'):
+                sources = {
+                    'software': 'Software',
+                    'line0': 'Line0',
+                    'line1': 'Line1',
+                    'line2': 'Line2',
+                }
+                self._node_map.TriggerSource.value = sources.get(source.lower(), 'Software')
+                return True
+        except Exception as e:
+            print(f"Error setting trigger source: {e}")
+        return False
+
+    def software_trigger(self) -> bool:
+        """Программный триггер (если включен триггерный режим)"""
+        if not self._node_map:
+            return False
+
+        try:
+            if hasattr(self._node_map, 'TriggerSoftware'):
+                self._node_map.TriggerSoftware.execute()
+                return True
+        except Exception as e:
+            print(f"Error executing software trigger: {e}")
+        return False
+
+    # ==================== Получение всех параметров ====================
+
+    def get_all_params(self) -> CameraParams:
+        """Получение всех текущих параметров камеры"""
+        if not self._node_map:
+            return self._params
+
+        self._params.exposure = self.get_exposure()
+        self._params.gain = self.get_gain()
+        self._params.frame_rate = self.get_frame_rate()
+
+        w, h = self.get_resolution()
+        self._params.width = w
+        self._params.height = h
+
+        return self._params
+
+    def apply_params(self, params: CameraParams) -> bool:
+        """Применение набора параметров"""
+        success = True
+
+        if params.auto_exposure:
+            success &= self.set_auto_exposure(True)
+        else:
+            success &= self.set_exposure(params.exposure)
+
+        if params.auto_gain:
+            success &= self.set_auto_gain(True)
+        else:
+            success &= self.set_gain(params.gain)
+
+        success &= self.set_frame_rate(params.frame_rate)
+
+        if params.width > 0 and params.height > 0:
+            success &= self.set_roi(
+                params.offset_x, params.offset_y,
+                params.width, params.height
+            )
+
+        return success
+
+    # ==================== Основные методы ====================
+
+    def run(self):
+        try:
+            self.harvester = Harvester()
+
+            if self.cti_file:
+                self.harvester.add_file(self.cti_file)
+            else:
+                self.harvester.add_file('/opt/MVS/lib/64/MvProducerU3V.cti')
+
+            self.harvester.update()
+
+            if len(self.harvester.device_info_list) == 0:
+                self.error_occurred.emit('Cannot open camera - no devices found')
+                return
+
+            self.ia = self.harvester.create(self.camera_index)
+
+            # Сохраняем node_map для управления параметрами
+            self._node_map = self.ia.remote_device.node_map
+
+            self._configure_camera()
+            self.ia.start()
+
+            self.running = True
+
+            while self.running:
+                try:
+                    with self.ia.fetch(timeout=2.0) as buffer:
+                        component = buffer.payload.components[0]
+                        frame = np.array(component.data).reshape(component.height, component.width)
+
+                        # Конвертация в черно-белое
+                        gray = self._convert_to_grayscale(frame, str(component.data_format))
+
+                        with QMutexLocker(self._mutex):
+                            self.last_frame = gray.copy()
+
+                        image = Image('', gray)
+                        self.frame_ready.emit(image)
+
+                except TimeoutError:
+                    continue
+                except Exception as e:
+                    if self.running:
+                        print(f"Frame capture error: {e}")
+                    continue
+
+        except Exception as e:
+            print(f"Camera error in run: {e}")
+            import traceback
+            traceback.print_exc()
+            self.error_occurred.emit(str(e))
+        finally:
+            self._cleanup()
+
+    def _convert_to_grayscale(self, frame: np.ndarray, data_format: str) -> np.ndarray:
+        """Конвертация кадра в черно-белое"""
+        if len(frame.shape) == 2 and 'Bayer' not in data_format:
+            return frame.astype(np.uint8)
+
+        if 'Bayer' in data_format:
+            if 'RG' in data_format:
+                bgr = cv2.cvtColor(frame, cv2.COLOR_BAYER_RG2BGR)
+            elif 'BG' in data_format:
+                bgr = cv2.cvtColor(frame, cv2.COLOR_BAYER_BG2BGR)
+            elif 'GR' in data_format:
+                bgr = cv2.cvtColor(frame, cv2.COLOR_BAYER_GR2BGR)
+            elif 'GB' in data_format:
+                bgr = cv2.cvtColor(frame, cv2.COLOR_BAYER_GB2BGR)
+            else:
+                bgr = cv2.cvtColor(frame, cv2.COLOR_BAYER_RG2BGR)
+            return cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
+
+        if len(frame.shape) == 3:
+            return cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+        return frame.astype(np.uint8)
+
+    def _cleanup(self):
+        """Очистка ресурсов"""
+        self._node_map = None
+
+        if self.ia:
+            try:
+                self.ia.stop()
+                self.ia.destroy()
+            except Exception as e:
+                print(f"Camera error in cleanup: {e}")
+            self.ia = None
+
+        if self.harvester:
+            try:
+                self.harvester.reset()
+            except Exception as e:
+                print(f"Camera error in cleanup: {e}")
+            self.harvester = None
+
+    def _configure_camera(self):
+        """Настройка параметров камеры"""
+        try:
+            node_map = self._node_map
+
+            print("Configuring camera parameters:")
+
+            # 1. Отключаем триггерный режим
+            if hasattr(node_map, 'TriggerMode'):
+                try:
+                    node_map.TriggerMode.value = 'Off'
+                    print("  Trigger mode: Off")
+                except:
+                    pass
+
+            # 2. Устанавливаем разрешение 1920x1080
+            try:
+                # Сначала сбрасываем смещения
+                if hasattr(node_map, 'OffsetX'):
+                    node_map.OffsetX.value = 0
+                if hasattr(node_map, 'OffsetY'):
+                    node_map.OffsetY.value = 0
+
+                # Устанавливаем разрешение
+                if hasattr(node_map, 'Width'):
+                    node_map.Width.value = 1920
+                if hasattr(node_map, 'Height'):
+                    node_map.Height.value = 1080
+
+                # Центрируем ROI на сенсоре
+                if hasattr(node_map, 'OffsetX') and hasattr(node_map, 'Width'):
+                    max_width = node_map.Width.max
+                    offset_x = (max_width - 1920) // 2
+                    node_map.OffsetX.value = offset_x
+                if hasattr(node_map, 'OffsetY') and hasattr(node_map, 'Height'):
+                    max_height = node_map.Height.max
+                    offset_y = (max_height - 1080) // 2
+                    node_map.OffsetY.value = offset_y
+
+                self._params.width = 1920
+                self._params.height = 1080
+                print("  Resolution: 1920x1080 (centered)")
+            except Exception as e:
+                print(f"  Cannot set resolution: {e}")
+
+            # 3. Устанавливаем формат пикселей
+            if hasattr(node_map, 'PixelFormat'):
+                try:
+                    if hasattr(node_map.PixelFormat, 'symbolics'):
+                        available = node_map.PixelFormat.symbolics
+                        if 'Mono8' in available:
+                            node_map.PixelFormat.value = 'Mono8'
+                            print("  Pixel format: Mono8")
+                        elif 'BayerRG8' in available:
+                            node_map.PixelFormat.value = 'BayerRG8'
+                            print("  Pixel format: BayerRG8")
+                except Exception as e:
+                    print(f"  Cannot set pixel format: {e}")
+
+            # 4. Отключаем автоэкспозицию и устанавливаем 1/30 сек = 33333 мкс
+            if hasattr(node_map, 'ExposureAuto'):
+                try:
+                    node_map.ExposureAuto.value = 'Off'
+                except:
+                    pass
+
+            if hasattr(node_map, 'ExposureTime'):
+                try:
+                    exposure_us = 33333.0  # 1/30 секунды
+                    node_map.ExposureTime.value = exposure_us
+                    self._params.exposure = exposure_us
+                    self._params.auto_exposure = False
+                    print(f"  Exposure: {exposure_us} us (1/30 sec)")
+                except Exception as e:
+                    print(f"  Cannot set exposure: {e}")
+
+            # 5. Отключаем автоусиление и устанавливаем gain
+            if hasattr(node_map, 'GainAuto'):
+                try:
+                    node_map.GainAuto.value = 'Off'
+                except:
+                    pass
+
+            if hasattr(node_map, 'Gain'):
+                try:
+                    gain_db = 10.0  # 10 дБ - умеренное усиление
+                    node_map.Gain.value = gain_db
+                    self._params.gain = gain_db
+                    self._params.auto_gain = False
+                    print(f"  Gain: {gain_db} dB")
+                except Exception as e:
+                    print(f"  Cannot set gain: {e}")
+
+            # 6. Устанавливаем 30 fps
+            if hasattr(node_map, 'AcquisitionFrameRateEnable'):
+                try:
+                    node_map.AcquisitionFrameRateEnable.value = True
+                except:
+                    pass
+
+            if hasattr(node_map, 'AcquisitionFrameRate'):
+                try:
+                    node_map.AcquisitionFrameRate.value = 30.0
+                    self._params.frame_rate = 30.0
+                    print("  Frame rate: 30 fps")
+                except Exception as e:
+                    print(f"  Cannot set frame rate: {e}")
+
+            # 7. Режим захвата - непрерывный
+            if hasattr(node_map, 'AcquisitionMode'):
+                try:
+                    node_map.AcquisitionMode.value = 'Continuous'
+                    print("  Acquisition mode: Continuous")
+                except:
+                    pass
+
+            print("Camera configured successfully!")
+
+        except Exception as e:
+            print(f"Warning: Could not configure camera: {e}")
+
+
+    def stop(self) -> Optional[Image]:
+        """Остановка потока и возврат последнего кадра"""
+        self.running = False
+
+        if not self.wait(3000):
+            print("Warning: Thread did not stop in time")
+            self.terminate()
+            self.wait()
+
+        with QMutexLocker(self._mutex):
+            last = self.last_frame
+            self.last_frame = None
+
+        if last is not None:
+            return Image('', last)
+        return None
