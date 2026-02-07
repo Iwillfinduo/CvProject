@@ -1,16 +1,15 @@
 from PySide6.QtCore import (QCoreApplication, QMetaObject, QRect,
                             Qt)
 from PySide6.QtGui import (QAction)
-from PySide6.QtWidgets import (QComboBox, QDialogButtonBox, QHBoxLayout, QSizePolicy, QSpacerItem,
-                               QVBoxLayout, QWidget)
-from PySide6.QtWidgets import (QLabel, QMenu, QMenuBar, QPushButton, QSlider, QStatusBar)
+from PySide6.QtWidgets import (QHBoxLayout, QLabel, QMenu, QMenuBar, QPushButton, QSizePolicy,
+                               QSlider, QStatusBar, QVBoxLayout, QWidget, QSpacerItem, QComboBox, QDialogButtonBox)
 
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
-        MainWindow.resize(800, 600)
+        MainWindow.resize(780, 532)
         self.actionCalculate_the_area = QAction(MainWindow)
         self.actionCalculate_the_area.setObjectName(u"actionCalculate_the_area")
         self.actionOpen = QAction(MainWindow)
@@ -23,6 +22,10 @@ class Ui_MainWindow(object):
         self.actionConnect_Camera.setObjectName(u"actionConnect_Camera")
         self.actionConnect_cti_file = QAction(MainWindow)
         self.actionConnect_cti_file.setObjectName(u"actionConnect_cti_file")
+        self.actionProcess_Image_Array = QAction(MainWindow)
+        self.actionProcess_Image_Array.setObjectName(u"actionProcess_Image_Array")
+        self.actionAbout = QAction(MainWindow)
+        self.actionAbout.setObjectName(u"actionAbout")
         self.centralwidget = QWidget(MainWindow)
         self.centralwidget.setObjectName(u"centralwidget")
         self.verticalLayout_2 = QVBoxLayout(self.centralwidget)
@@ -99,11 +102,13 @@ class Ui_MainWindow(object):
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QMenuBar(MainWindow)
         self.menubar.setObjectName(u"menubar")
-        self.menubar.setGeometry(QRect(0, 0, 800, 23))
+        self.menubar.setGeometry(QRect(0, 0, 780, 33))
         self.menuFunctions = QMenu(self.menubar)
         self.menuFunctions.setObjectName(u"menuFunctions")
         self.menuFIle = QMenu(self.menubar)
         self.menuFIle.setObjectName(u"menuFIle")
+        self.menuHelp = QMenu(self.menubar)
+        self.menuHelp.setObjectName(u"menuHelp")
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QStatusBar(MainWindow)
         self.statusbar.setObjectName(u"statusbar")
@@ -111,14 +116,17 @@ class Ui_MainWindow(object):
 
         self.menubar.addAction(self.menuFIle.menuAction())
         self.menubar.addAction(self.menuFunctions.menuAction())
+        self.menubar.addAction(self.menuHelp.menuAction())
         self.menuFunctions.addAction(self.actionCalculate_the_area)
         self.menuFunctions.addSeparator()
         self.menuFunctions.addAction(self.actionAuto_Gamma_by_area)
+        self.menuFunctions.addAction(self.actionProcess_Image_Array)
         self.menuFIle.addAction(self.actionOpen)
         self.menuFIle.addAction(self.actionOpen_Calibration_Image)
         self.menuFIle.addAction(self.actionConnect_Camera)
         self.menuFIle.addSeparator()
         self.menuFIle.addAction(self.actionConnect_cti_file)
+        self.menuHelp.addAction(self.actionAbout)
 
         self.retranslateUi(MainWindow)
 
@@ -135,6 +143,8 @@ class Ui_MainWindow(object):
         self.actionAuto_Gamma_by_area.setText(QCoreApplication.translate("MainWindow", u"Auto Gamma by area", None))
         self.actionConnect_Camera.setText(QCoreApplication.translate("MainWindow", u"Connect Basic Camera", None))
         self.actionConnect_cti_file.setText(QCoreApplication.translate("MainWindow", u"Connect .cti file", None))
+        self.actionProcess_Image_Array.setText(QCoreApplication.translate("MainWindow", u"Process Image Array", None))
+        self.actionAbout.setText(QCoreApplication.translate("MainWindow", u"About", None))
         self.pixmap_label.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
         self.label_2.setText("")
         self.pushButton.setText(QCoreApplication.translate("MainWindow", u"AutoGamma1", None))
@@ -144,6 +154,8 @@ class Ui_MainWindow(object):
         self.apply_countour_button.setText(QCoreApplication.translate("MainWindow", u"Apply Contour", None))
         self.menuFunctions.setTitle(QCoreApplication.translate("MainWindow", u"Functions", None))
         self.menuFIle.setTitle(QCoreApplication.translate("MainWindow", u"FIle", None))
+        self.menuHelp.setTitle(QCoreApplication.translate("MainWindow", u"Help", None))
+
     # retranslateUi
 
     def add_snap_button(self):
@@ -155,11 +167,11 @@ class Ui_MainWindow(object):
 
         self.verticalLayout.insertLayout(1, self.horizontalLayout_6)
 
-
     def delete_snap_button(self):
         if self.horizontalLayout_6 is not None:
             self.horizontalLayout_6.deleteLater()
             self.snap_pushButton.deleteLater()
+
 
 class ChooseCameraDialog(object):
     def setupUi(self, Dialog):

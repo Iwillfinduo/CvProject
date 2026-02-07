@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>800</width>
-    <height>600</height>
+    <width>780</width>
+    <height>532</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -125,8 +125,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>800</width>
-     <height>23</height>
+     <width>780</width>
+     <height>33</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFunctions">
@@ -136,6 +136,7 @@
     <addaction name="actionCalculate_the_area"/>
     <addaction name="separator"/>
     <addaction name="actionAuto_Gamma_by_area"/>
+    <addaction name="actionProcess_Image_Array"/>
    </widget>
    <widget class="QMenu" name="menuFIle">
     <property name="title">
@@ -147,8 +148,15 @@
     <addaction name="separator"/>
     <addaction name="actionConnect_cti_file"/>
    </widget>
+   <widget class="QMenu" name="menuHelp">
+    <property name="title">
+     <string>Help</string>
+    </property>
+    <addaction name="actionAbout"/>
+   </widget>
    <addaction name="menuFIle"/>
    <addaction name="menuFunctions"/>
+   <addaction name="menuHelp"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionCalculate_the_area">
@@ -179,6 +187,16 @@
   <action name="actionConnect_cti_file">
    <property name="text">
     <string>Connect .cti file</string>
+   </property>
+  </action>
+  <action name="actionProcess_Image_Array">
+   <property name="text">
+    <string>Process Image Array</string>
+   </property>
+  </action>
+  <action name="actionAbout">
+   <property name="text">
+    <string>About</string>
    </property>
   </action>
  </widget>
