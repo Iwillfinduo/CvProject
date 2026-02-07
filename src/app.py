@@ -51,6 +51,7 @@ class ImageViewer(QMainWindow):
         self.ui.actionAuto_Gamma_by_area.triggered.connect(self._auto_gamma_by_area)
         self.ui.pixmap_label.setMinimumSize(QSize(200, 200))
         self.ui.actionConnect_cti_file.triggered.connect(self._connect_cti_file)
+        self.ui.actionProcess_Image_Array.triggered.connect(self._process_images_array)
 
         # Контуры: автоматический стоп-кадр только для камеры
         self.ui.apply_countour_button.toggled.connect(self._on_contours_toggled)
@@ -315,6 +316,79 @@ class ImageViewer(QMainWindow):
             length, units = OpenCVToQtAdapter.process_calibration_image(filename[0])
             self.unit_factor = int(units[0]) / length
             self.unit_name = units[1]
+
+    def _process_images_array(self):
+        """Пакетная обработка изображений с автогаммой и сохранением результатов в CSV"""
+        import csv
+        from datetime import datetime
+
+        filenames, _ = QFileDialog.getOpenFileNames(
+            self,
+            'Select Images',
+            os.getcwd(),
+            'Image Files (*.png *.jpg *.bmp)'
+        )
+
+        if not filenames:
+            return
+
+        csv_path, _ = QFileDialog.getSaveFileName(
+            self,
+            'Save Results',
+            os.path.join(os.getcwd(), f'results_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'),
+            'CSV Files (*.csv)'
+        )
+
+        if not csv_path:
+            return
+
+        progress = QProgressDialog('Processing images...', 'Cancel', 0, len(filenames), self)
+        progress.setWindowModality(Qt.WindowModal)
+        progress.setWindowTitle('Batch Processing')
+
+        results = []
+
+        for i, filename in enumerate(filenames):
+            if progress.wasCanceled():
+                break
+
+            progress.setLabelText(f'Processing {os.path.basename(filename)}...')
+            progress.setValue(i)
+
+            # Загрузка изображения
+            temp_image = Image(filename)
+
+            gamma = temp_image.calculate_gamma_from_contour_graph_with_std(max_gamma=15, modal_window=None)
+            temp_image = temp_image.apply_gamma(gamma)
+
+            # Расчет площади
+            sum_of_areas, areas_units = temp_image.calculate_area(self.unit_factor)
+            contours = temp_image.get_contours()
+
+            results.append({
+                'filename': os.path.basename(filename),
+                'gamma': gamma,
+                'area_px': sum_of_areas,
+                'area_units': areas_units if self.unit_factor else 0,
+                'unit_name': self.unit_name or 'N/A',
+                'contours_count': len(contours)
+            })
+
+        progress.setValue(len(filenames))
+
+        if results:
+            with open(csv_path, 'w', newline='', encoding='utf-8') as csvfile:
+                fieldnames = ['filename', 'gamma', 'area_px', 'area_units', 'unit_name', 'contours_count']
+                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+
+                writer.writeheader()
+                writer.writerows(results)
+
+            QMessageBox.information(
+                self,
+                'Success',
+                f'Processed {len(results)} images\nResults saved to:\n{csv_path}'
+            )
 
     def _calculate_area(self):
         message_box = QMessageBox()
