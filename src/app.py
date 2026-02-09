@@ -34,7 +34,9 @@ class ImageViewer(QMainWindow):
         self.thread = None
         self._camera_cti_file = None
         self._camera_index = None
-        self._is_camera_mode = False  # Режим камеры или файла
+        self._is_camera_mode = False
+        self._camera_paused = False
+        self._last_camera_frame = None
 
         # UI
         self.ui = Ui_MainWindow()
@@ -72,13 +74,16 @@ class ImageViewer(QMainWindow):
             # Режим камеры: управляем стоп-кадром
             if checked:
                 # Включили контуры -> стоп-кадр
-                self._pause_camera()
+                self._camera_paused = True
             else:
                 # Выключили контуры -> возобновляем видео
-                self._restart_camera()
+                if not self.ui.pushButton.isChecked() and not self.ui.pushButton_2.isChecked():
+                    self._camera_paused = checked
+                else:
+                    self._camera_paused = True
         self.display_image()
 
-    def _pause_camera(self):
+    def _stop_camera(self):
         """Остановка камеры и захват последнего кадра"""
         if self.thread and self.thread.isRunning():
             last_image = self.thread.stop()
@@ -188,10 +193,8 @@ class ImageViewer(QMainWindow):
         if self.thread is None:
             return
 
-        # Игнорируем кадры если контуры включены (мы на стоп-кадре)
-        if self.ui.apply_countour_button.isChecked():
+        if self._camera_paused:
             return
-
         self.image = image
         pixmap = self._get_pixmap(apply_contours=False)
         self._set_pixmap(pixmap)
@@ -275,11 +278,10 @@ class ImageViewer(QMainWindow):
 
     def _apply_second_auto_gamma_toggled(self, checked: bool):
         if self._is_camera_mode:
-            if checked:
-                self._pause_camera()
-
+            if not self.ui.pushButton.isChecked() and not self.ui.apply_countour_button.isChecked():
+                self._camera_paused=checked
             else:
-                self._restart_camera()
+                self._camera_paused = True
 
         if checked:
             self.ui.pushButton.setChecked(False)
@@ -288,16 +290,15 @@ class ImageViewer(QMainWindow):
             self.ui.label_3.setText(f"Auto gamma set to {self.gamma:.2f}")
             self._update_gamma()
         else:
-            self._restart_camera()
             self.auto_gamma_flag = False
         self.display_image()
 
     def _apply_first_auto_gamma_toggled(self, checked: bool):
         if self._is_camera_mode:
-            if checked:
-                self._pause_camera()
+            if not self.ui.pushButton_2.isChecked() and not self.ui.apply_countour_button.isChecked():
+                self._camera_paused = checked
             else:
-                self._restart_camera()
+                self._camera_paused = True
 
         if checked:
             self.ui.pushButton_2.setChecked(False)
@@ -419,7 +420,7 @@ class ImageViewer(QMainWindow):
 
     def _auto_gamma_by_area(self):
         if self._is_camera_mode:
-            self._pause_camera()
+            self._camera_paused = True
         progress_dialog = QProgressDialog()
         progress_dialog.setWindowTitle('Auto gamma')
         progress_dialog.setValue(0)
@@ -434,7 +435,7 @@ class ImageViewer(QMainWindow):
         self.gamma = gamma
         self._update_gamma()
         if self._is_camera_mode:
-            self._restart_camera()
+            self._camera_paused = True
         self.display_image()
 
     def _update_gamma(self):

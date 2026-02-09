@@ -232,6 +232,107 @@ class HikrobotThread(QThread):
                     harvester.reset()
                 except Exception as e:
                     print(f"Error cleaning up harvester: {e}")
+    # ==================== Формат Пикселей и режим захвата ====================
+    def set_pixel_format(self, format_name: str = 'Mono8') -> bool:
+        """
+        Установка формата пикселей
+
+        Args:
+            format_name: 'Mono8', 'BayerRG8', 'RGB8', etc.
+        """
+        if not self._node_map:
+            return False
+
+        try:
+            if hasattr(self._node_map, 'PixelFormat'):
+                if hasattr(self._node_map.PixelFormat, 'symbolics'):
+                    available = self._node_map.PixelFormat.symbolics
+
+                    # Пробуем установить указанный формат
+                    if format_name in available:
+                        self._node_map.PixelFormat.value = format_name
+                        print(f"  Pixel format: {format_name}")
+                        return True
+
+                    # Fallback: если Mono8 недоступен, пробуем BayerRG8
+                    if format_name == 'Mono8' and 'BayerRG8' in available:
+                        self._node_map.PixelFormat.value = 'BayerRG8'
+                        print(f"  Pixel format: BayerRG8 (Mono8 not available)")
+                        return True
+
+            print(f"  Warning: Pixel format {format_name} not available")
+        except Exception as e:
+            print(f"Error setting pixel format: {e}")
+        return False
+
+    def get_pixel_format(self) -> str:
+        """Получение текущего формата пикселей"""
+        if not self._node_map:
+            return ''
+
+        try:
+            if hasattr(self._node_map, 'PixelFormat'):
+                return str(self._node_map.PixelFormat.value)
+        except Exception as e:
+            print(f"Error getting pixel format: {e}")
+        return ''
+
+    def get_available_pixel_formats(self) -> List[str]:
+        """Получение списка доступных форматов пикселей"""
+        if not self._node_map:
+            return []
+
+        try:
+            if hasattr(self._node_map, 'PixelFormat'):
+                if hasattr(self._node_map.PixelFormat, 'symbolics'):
+                    return list(self._node_map.PixelFormat.symbolics)
+        except Exception as e:
+            print(f"Error getting available pixel formats: {e}")
+        return []
+
+    def set_acquisition_mode(self, mode: str = 'Continuous') -> bool:
+        """
+        Установка режима захвата
+
+        Args:
+            mode: 'Continuous', 'SingleFrame', 'MultiFrame'
+        """
+        if not self._node_map:
+            return False
+
+        try:
+            if hasattr(self._node_map, 'AcquisitionMode'):
+                self._node_map.AcquisitionMode.value = mode
+                print(f"  Acquisition mode: {mode}")
+                return True
+        except Exception as e:
+            print(f"Error setting acquisition mode: {e}")
+        return False
+
+    def get_acquisition_mode(self) -> str:
+        """Получение текущего режима захвата"""
+        if not self._node_map:
+            return ''
+
+        try:
+            if hasattr(self._node_map, 'AcquisitionMode'):
+                return str(self._node_map.AcquisitionMode.value)
+        except Exception as e:
+            print(f"Error getting acquisition mode: {e}")
+        return ''
+
+    def get_available_acquisition_modes(self) -> List[str]:
+        """Получение списка доступных режимов захвата"""
+        if not self._node_map:
+            return []
+
+        try:
+            if hasattr(self._node_map, 'AcquisitionMode'):
+                if hasattr(self._node_map.AcquisitionMode, 'symbolics'):
+                    return list(self._node_map.AcquisitionMode.symbolics)
+        except Exception as e:
+            print(f"Error getting available acquisition modes: {e}")
+        return []
 
     # ==================== Параметры экспозиции ====================
 
@@ -800,118 +901,43 @@ class HikrobotThread(QThread):
     def _configure_camera(self):
         """Настройка параметров камеры"""
         try:
-            node_map = self._node_map
-
             print("Configuring camera parameters:")
 
             # 1. Отключаем триггерный режим
-            if hasattr(node_map, 'TriggerMode'):
-                try:
-                    node_map.TriggerMode.value = 'Off'
-                    print("  Trigger mode: Off")
-                except:
-                    pass
+            if not self.set_trigger_mode(False):
+                print("  Warning: Could not disable trigger mode")
 
-            # 2. Устанавливаем разрешение 1920x1080
-            try:
-                # Сначала сбрасываем смещения
-                if hasattr(node_map, 'OffsetX'):
-                    node_map.OffsetX.value = 0
-                if hasattr(node_map, 'OffsetY'):
-                    node_map.OffsetY.value = 0
+            # 2. Устанавливаем максимальное разрешение
+            if not self.reset_roi():
+                print("  Warning: Could not set maximum resolution")
+            else:
+                print(f"  Resolution: {self._params.width}x{self._params.height} (maximum)")
 
-                # Устанавливаем разрешение
-                if hasattr(node_map, 'Width'):
-                    node_map.Width.value = 1920
-                if hasattr(node_map, 'Height'):
-                    node_map.Height.value = 1080
+            # 3. Устанавливаем формат пикселей (нужен отдельный метод)
+            if not self.set_pixel_format('Mono8'):
+                print("  Warning: Could not set pixel format")
 
-                # Центрируем ROI на сенсоре
-                if hasattr(node_map, 'OffsetX') and hasattr(node_map, 'Width'):
-                    max_width = node_map.Width.max
-                    offset_x = (max_width - 1920) // 2
-                    node_map.OffsetX.value = offset_x
-                if hasattr(node_map, 'OffsetY') and hasattr(node_map, 'Height'):
-                    max_height = node_map.Height.max
-                    offset_y = (max_height - 1080) // 2
-                    node_map.OffsetY.value = offset_y
+            # 4. Устанавливаем экспозицию 1/30 сек = 33333 мкс
+            if not self.set_exposure(33333.0):
+                print("  Warning: Could not set exposure")
+            else:
+                print(f"  Exposure: {self._params.exposure} us (1/30 sec)")
 
-                self._params.width = 1920
-                self._params.height = 1080
-                print("  Resolution: 1920x1080 (centered)")
-            except Exception as e:
-                print(f"  Cannot set resolution: {e}")
+            # 5. Устанавливаем усиление 10 дБ
+            if not self.set_gain(10.0):
+                print("  Warning: Could not set gain")
+            else:
+                print(f"  Gain: {self._params.gain} dB")
 
-            # 3. Устанавливаем формат пикселей
-            if hasattr(node_map, 'PixelFormat'):
-                try:
-                    if hasattr(node_map.PixelFormat, 'symbolics'):
-                        available = node_map.PixelFormat.symbolics
-                        if 'Mono8' in available:
-                            node_map.PixelFormat.value = 'Mono8'
-                            print("  Pixel format: Mono8")
-                        elif 'BayerRG8' in available:
-                            node_map.PixelFormat.value = 'BayerRG8'
-                            print("  Pixel format: BayerRG8")
-                except Exception as e:
-                    print(f"  Cannot set pixel format: {e}")
-
-            # 4. Отключаем автоэкспозицию и устанавливаем 1/30 сек = 33333 мкс
-            if hasattr(node_map, 'ExposureAuto'):
-                try:
-                    node_map.ExposureAuto.value = 'Off'
-                except:
-                    pass
-
-            if hasattr(node_map, 'ExposureTime'):
-                try:
-                    exposure_us = 33333.0  # 1/30 секунды
-                    node_map.ExposureTime.value = exposure_us
-                    self._params.exposure = exposure_us
-                    self._params.auto_exposure = False
-                    print(f"  Exposure: {exposure_us} us (1/30 sec)")
-                except Exception as e:
-                    print(f"  Cannot set exposure: {e}")
-
-            # 5. Отключаем автоусиление и устанавливаем gain
-            if hasattr(node_map, 'GainAuto'):
-                try:
-                    node_map.GainAuto.value = 'Off'
-                except:
-                    pass
-
-            if hasattr(node_map, 'Gain'):
-                try:
-                    gain_db = 10.0  # 10 дБ - умеренное усиление
-                    node_map.Gain.value = gain_db
-                    self._params.gain = gain_db
-                    self._params.auto_gain = False
-                    print(f"  Gain: {gain_db} dB")
-                except Exception as e:
-                    print(f"  Cannot set gain: {e}")
-
-            # 6. Устанавливаем 30 fps
-            if hasattr(node_map, 'AcquisitionFrameRateEnable'):
-                try:
-                    node_map.AcquisitionFrameRateEnable.value = True
-                except:
-                    pass
-
-            if hasattr(node_map, 'AcquisitionFrameRate'):
-                try:
-                    node_map.AcquisitionFrameRate.value = 30.0
-                    self._params.frame_rate = 30.0
-                    print("  Frame rate: 30 fps")
-                except Exception as e:
-                    print(f"  Cannot set frame rate: {e}")
+            # 6. Устанавливаем частоту кадров 30 fps
+            if not self.set_frame_rate(30.0):
+                print("  Warning: Could not set frame rate")
+            else:
+                print(f"  Frame rate: {self._params.frame_rate} fps")
 
             # 7. Режим захвата - непрерывный
-            if hasattr(node_map, 'AcquisitionMode'):
-                try:
-                    node_map.AcquisitionMode.value = 'Continuous'
-                    print("  Acquisition mode: Continuous")
-                except:
-                    pass
+            if not self.set_acquisition_mode('Continuous'):
+                print("  Warning: Could not set acquisition mode")
 
             print("Camera configured successfully!")
 
