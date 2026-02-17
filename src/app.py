@@ -54,6 +54,7 @@ class ImageViewer(QMainWindow):
         self.ui.pixmap_label.setMinimumSize(QSize(200, 200))
         self.ui.actionConnect_cti_file.triggered.connect(self._connect_cti_file)
         self.ui.actionProcess_Image_Array.triggered.connect(self._process_images_array)
+        self.ui.actionAbout.triggered.connect(self._show_about)
 
         # Контуры: автоматический стоп-кадр только для камеры
         self.ui.apply_countour_button.toggled.connect(self._on_contours_toggled)
@@ -65,6 +66,11 @@ class ImageViewer(QMainWindow):
     def resizeEvent(self, event):
         super().resizeEvent(event)
         self.display_image()
+
+
+    def _show_about(self):
+        QMessageBox.about(None,"About", 'Author: Zhilin Rostislav Romanovich, MIT Licence')
+
 
     # ==================== Обработка контуров ====================
 
