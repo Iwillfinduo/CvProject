@@ -49,7 +49,7 @@ class ImageViewer(QMainWindow):
         self.ui.actionConnect_Camera.triggered.connect(self._connect_video_thread)
         self.ui.actionOpen_Calibration_Image.triggered.connect(self._calibrate_area)
         self.ui.pushButton.toggled.connect(self._apply_first_auto_gamma_toggled)
-        self.ui.pushButton_2.toggled.connect(self._apply_second_auto_gamma_toggled)
+        self.ui.actionAuto_Gamma_by_percentile.triggered.connect(self._apply_second_auto_gamma)
         self.ui.actionAuto_Gamma_by_area.triggered.connect(self._auto_gamma_by_area)
         self.ui.pixmap_label.setMinimumSize(QSize(200, 200))
         self.ui.actionConnect_cti_file.triggered.connect(self._connect_cti_file)
@@ -77,7 +77,7 @@ class ImageViewer(QMainWindow):
                 self._camera_paused = True
             else:
                 # Выключили контуры -> возобновляем видео
-                if not self.ui.pushButton.isChecked() and not self.ui.pushButton_2.isChecked():
+                if not self.ui.pushButton.isChecked():
                     self._camera_paused = checked
                 else:
                     self._camera_paused = True
@@ -92,7 +92,7 @@ class ImageViewer(QMainWindow):
         self.display_image()
 
     def _check_buttons(self) -> bool:
-        return self.ui.apply_countour_button.isChecked() or self.ui.pushButton.isChecked() or self.ui.pushButton_2.isChecked()
+        return self.ui.apply_countour_button.isChecked() or self.ui.pushButton.isChecked()
 
     def _restart_camera(self):
         """Перезапуск камеры"""
@@ -276,32 +276,23 @@ class ImageViewer(QMainWindow):
             self.ui.gamma_label.setText(str(gamma))
         self.display_image()
 
-    def _apply_second_auto_gamma_toggled(self, checked: bool):
+    def _apply_second_auto_gamma(self):
         if self._is_camera_mode:
-            if not self.ui.pushButton.isChecked() and not self.ui.apply_countour_button.isChecked():
-                self._camera_paused=checked
-            else:
-                self._camera_paused = True
+            self._camera_paused=True
 
-        if checked:
-            self.ui.pushButton.setChecked(False)
-            self.auto_gamma_flag = True
-            self.gamma = self.image.gamma_from_high_percentile(target=self.second_parameter)
-            self.ui.label_3.setText(f"Auto gamma set to {self.gamma:.2f}")
-            self._update_gamma()
-        else:
-            self.auto_gamma_flag = False
+        self.ui.pushButton.setChecked(False)
+        self.gamma = self.image.gamma_from_high_percentile(target=self.second_parameter)
+        self._update_gamma()
         self.display_image()
 
     def _apply_first_auto_gamma_toggled(self, checked: bool):
         if self._is_camera_mode:
-            if not self.ui.pushButton_2.isChecked() and not self.ui.apply_countour_button.isChecked():
+            if not self.ui.apply_countour_button.isChecked():
                 self._camera_paused = checked
             else:
                 self._camera_paused = True
 
         if checked:
-            self.ui.pushButton_2.setChecked(False)
             self.auto_gamma_flag = False
             self.processed_image = self.image.stretch_bright_region(threshold=self.first_parameter)
         else:

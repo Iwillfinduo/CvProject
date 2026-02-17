@@ -42,31 +42,7 @@
         <item>
          <widget class="QPushButton" name="pushButton">
           <property name="text">
-           <string>AutoGamma1</string>
-          </property>
-          <property name="checkable">
-           <bool>true</bool>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
-      <item>
-       <layout class="QHBoxLayout" name="horizontalLayout_4">
-        <item>
-         <widget class="QLabel" name="label_3">
-          <property name="text">
-           <string/>
-          </property>
-          <property name="alignment">
-           <set>Qt::AlignmentFlag::AlignCenter</set>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="pushButton_2">
-          <property name="text">
-           <string>AutoGamma2</string>
+           <string>Strech Bright Region</string>
           </property>
           <property name="checkable">
            <bool>true</bool>
@@ -126,7 +102,7 @@
      <x>0</x>
      <y>0</y>
      <width>780</width>
-     <height>33</height>
+     <height>23</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFunctions">
@@ -137,6 +113,7 @@
     <addaction name="separator"/>
     <addaction name="actionAuto_Gamma_by_area"/>
     <addaction name="actionProcess_Image_Array"/>
+    <addaction name="actionAuto_Gamma_by_percentile"/>
    </widget>
    <widget class="QMenu" name="menuFIle">
     <property name="title">
@@ -197,6 +174,11 @@
   <action name="actionAbout">
    <property name="text">
     <string>About</string>
+   </property>
+  </action>
+  <action name="actionAuto_Gamma_by_percentile">
+   <property name="text">
+    <string>Auto Gamma by percentile</string>
    </property>
   </action>
  </widget>

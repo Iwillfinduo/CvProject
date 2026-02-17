@@ -5,6 +5,7 @@ from PySide6.QtWidgets import (QHBoxLayout, QLabel, QMenu, QMenuBar, QPushButton
                                QSlider, QStatusBar, QVBoxLayout, QWidget, QSpacerItem, QComboBox, QDialogButtonBox)
 
 
+
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
@@ -26,6 +27,8 @@ class Ui_MainWindow(object):
         self.actionProcess_Image_Array.setObjectName(u"actionProcess_Image_Array")
         self.actionAbout = QAction(MainWindow)
         self.actionAbout.setObjectName(u"actionAbout")
+        self.actionAuto_Gamma_by_percentile = QAction(MainWindow)
+        self.actionAuto_Gamma_by_percentile.setObjectName(u"actionAuto_Gamma_by_percentile")
         self.centralwidget = QWidget(MainWindow)
         self.centralwidget.setObjectName(u"centralwidget")
         self.verticalLayout_2 = QVBoxLayout(self.centralwidget)
@@ -53,22 +56,6 @@ class Ui_MainWindow(object):
         self.horizontalLayout_2.addWidget(self.pushButton)
 
         self.verticalLayout.addLayout(self.horizontalLayout_2)
-
-        self.horizontalLayout_4 = QHBoxLayout()
-        self.horizontalLayout_4.setObjectName(u"horizontalLayout_4")
-        self.label_3 = QLabel(self.centralwidget)
-        self.label_3.setObjectName(u"label_3")
-        self.label_3.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        self.horizontalLayout_4.addWidget(self.label_3)
-
-        self.pushButton_2 = QPushButton(self.centralwidget)
-        self.pushButton_2.setObjectName(u"pushButton_2")
-        self.pushButton_2.setCheckable(True)
-
-        self.horizontalLayout_4.addWidget(self.pushButton_2)
-
-        self.verticalLayout.addLayout(self.horizontalLayout_4)
 
         self.horizontalLayout_5 = QHBoxLayout()
         self.horizontalLayout_5.setObjectName(u"horizontalLayout_5")
@@ -102,7 +89,7 @@ class Ui_MainWindow(object):
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QMenuBar(MainWindow)
         self.menubar.setObjectName(u"menubar")
-        self.menubar.setGeometry(QRect(0, 0, 780, 33))
+        self.menubar.setGeometry(QRect(0, 0, 780, 23))
         self.menuFunctions = QMenu(self.menubar)
         self.menuFunctions.setObjectName(u"menuFunctions")
         self.menuFIle = QMenu(self.menubar)
@@ -121,6 +108,7 @@ class Ui_MainWindow(object):
         self.menuFunctions.addSeparator()
         self.menuFunctions.addAction(self.actionAuto_Gamma_by_area)
         self.menuFunctions.addAction(self.actionProcess_Image_Array)
+        self.menuFunctions.addAction(self.actionAuto_Gamma_by_percentile)
         self.menuFIle.addAction(self.actionOpen)
         self.menuFIle.addAction(self.actionOpen_Calibration_Image)
         self.menuFIle.addAction(self.actionConnect_Camera)
@@ -145,11 +133,11 @@ class Ui_MainWindow(object):
         self.actionConnect_cti_file.setText(QCoreApplication.translate("MainWindow", u"Connect .cti file", None))
         self.actionProcess_Image_Array.setText(QCoreApplication.translate("MainWindow", u"Process Image Array", None))
         self.actionAbout.setText(QCoreApplication.translate("MainWindow", u"About", None))
+        self.actionAuto_Gamma_by_percentile.setText(
+            QCoreApplication.translate("MainWindow", u"Auto Gamma by percentile", None))
         self.pixmap_label.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
         self.label_2.setText("")
-        self.pushButton.setText(QCoreApplication.translate("MainWindow", u"AutoGamma1", None))
-        self.label_3.setText("")
-        self.pushButton_2.setText(QCoreApplication.translate("MainWindow", u"AutoGamma2", None))
+        self.pushButton.setText(QCoreApplication.translate("MainWindow", u"Strech Bright Region", None))
         self.gamma_label.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
         self.apply_countour_button.setText(QCoreApplication.translate("MainWindow", u"Apply Contour", None))
         self.menuFunctions.setTitle(QCoreApplication.translate("MainWindow", u"Functions", None))

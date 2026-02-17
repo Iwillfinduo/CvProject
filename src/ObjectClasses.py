@@ -175,7 +175,6 @@ class VideoThread(QThread):
         return last_image
 
 
-# UNTESTED
 class HikrobotThread(QThread):
     frame_ready = Signal(object)
     error_occurred = Signal(str)
@@ -924,7 +923,7 @@ class HikrobotThread(QThread):
                 print(f"  Exposure: {self._params.exposure} us (1/30 sec)")
 
             # 5. Устанавливаем усиление 10 дБ
-            if not self.set_gain(10.0):
+            if not self.set_gain(0.0):
                 print("  Warning: Could not set gain")
             else:
                 print(f"  Gain: {self._params.gain} dB")
