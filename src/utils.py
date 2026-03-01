@@ -5,6 +5,7 @@ import cv2 as cv
 import numpy as np
 import pytesseract
 from PySide6.QtGui import QImage, QPixmap
+from scipy.signal import savgol_filter
 
 
 class OpenCVToQtAdapter:
@@ -114,6 +115,7 @@ class OpenCVToQtAdapter:
         stretched = np.clip((gray - threshold) / (1.0 - threshold), 0, 1)
         return (stretched * 255).astype(np.uint8)
 
+    #Deprecated
     @staticmethod
     def find_std_deviation(y, window=5):
         std_dev = []
@@ -130,6 +132,24 @@ class OpenCVToQtAdapter:
         print(std_dev)
 
         return max_std_index + window
+
+
+    @staticmethod
+    def find_foot_of_drop(areas, stability_threshold=0.02):
+        areas = np.array(areas) + 1e-8
+        # 1. лог-производная
+        log_grad = np.log(areas[:-1]) - np.log(areas[1:])
+
+        # 2. индекс максимального падения
+        drop_idx = np.argmax(log_grad)
+
+        # 3. ищем стабилизацию
+        for i in range(drop_idx + 1, len(log_grad)):
+            if abs(log_grad[i]) < stability_threshold:
+                return i + 1
+
+        # если не нашли стабилизацию
+        return drop_idx + 1
 
     @staticmethod
     def list_ports():

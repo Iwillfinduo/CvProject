@@ -356,7 +356,7 @@ class ImageViewer(QMainWindow):
             # Загрузка изображения
             temp_image = Image(filename)
 
-            gamma = temp_image.calculate_gamma_from_contour_graph_with_std(max_gamma=15, modal_window=None)
+            gamma = temp_image.calculate_gamma_from_contour_graph_with_log_deriv(max_gamma=15, modal_window=None)
             temp_image = temp_image.apply_gamma(gamma)
 
             # Расчет площади
@@ -428,7 +428,7 @@ class ImageViewer(QMainWindow):
         progress_dialog.setCancelButton(None)
 
         image = self.image.clone()
-        gamma = image.calculate_gamma_from_contour_graph_with_std(max_gamma=15, modal_window=progress_dialog)
+        gamma = image.calculate_gamma_from_contour_graph_with_log_deriv(max_gamma=15, modal_window=progress_dialog)
         self.gamma = gamma
         self._update_gamma()
         if self._is_camera_mode:

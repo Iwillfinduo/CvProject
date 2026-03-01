@@ -72,7 +72,6 @@ class Image:
         return self
 
     def apply_contours(self):
-        # FIXED: ERROR WHILE CHANGING GAMMA IF CONTOURS ARE APPLIED
         if self.processed_image is None:
             processed_image = self.image
         else:
@@ -118,7 +117,7 @@ class Image:
         return Image(self.image_path, (stretched * 255).astype(np.uint8))
 
 
-    def calculate_gamma_from_contour_graph_with_std(self, min_gamma=1.0, max_gamma=10.0, area_difference_coefficient=20,
+    def calculate_gamma_from_contour_graph_with_log_deriv(self, min_gamma=1.0, max_gamma=10.0, area_difference_coefficient=20,
                                                     modal_window=None):
         '''Предподсчитывает все значения площадей в зависимости от гаммы
          и ищет максимальное стандартное квадратичное отклонение окна'''
@@ -135,7 +134,34 @@ class Image:
             if modal_window is not None:
                 modal_window.setValue(num * 100 / ((max_gamma - min_gamma) / 0.1))
             gamma += 0.1
-        return min_gamma + 0.1 * OpenCVToQtAdapter.find_std_deviation(areas)
+        return min_gamma + 0.1 * (OpenCVToQtAdapter.find_foot_of_drop(areas, stability_threshold=0.1))
+
+    # DEPRECATED
+    def calculate_gamma_from_contour_graph(self, min_gamma=0.3, max_gamma=10.0, area_difference_coefficient=20,
+                                           modal_window=None):
+
+        prev_area = 0.0
+        num = 0
+        gamma = min_gamma
+        area_max_diff = 0.0
+        while gamma <= max_gamma:
+            self.apply_gamma(gamma)
+            contour_img = self.apply_contours()
+            current_area, _ = contour_img.calculate_area()
+            if prev_area / current_area > area_difference_coefficient:
+                if modal_window is not None:
+                    modal_window.setValue(100)
+                return gamma + 0.1
+            if modal_window is not None:
+                modal_window.setValue(num)
+            # print(prev_area/current_area, gamma)
+            if prev_area / current_area > area_max_diff:
+                area_max_diff = prev_area / current_area
+                min_gamma = gamma
+            prev_area = current_area
+            num += 1
+            gamma += 0.1
+        return min_gamma
 
 
 class VideoThread(QThread):
