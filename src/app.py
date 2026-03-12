@@ -1,13 +1,16 @@
 import os
 import sys
+import csv
+from datetime import datetime
 
 from PySide6.QtCore import Qt, Slot, QTimer, QSize
 from PySide6.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QProgressDialog, QDialog
 from PySide6.QtMultimedia import QMediaDevices
 
 from ObjectClasses import Image, VideoThread, HikrobotThread
-from ui import Ui_MainWindow, ChooseCameraDialog
-from utils import OpenCVToQtAdapter
+from ui import Ui_MainWindow
+from dialogs import ChooseCameraDialog, PreprocessMethodDialog
+from utils import OpenCVToQtAdapter, PreprocessMethod
 
 filename = 'placeholder.png'
 
@@ -316,76 +319,112 @@ class ImageViewer(QMainWindow):
             self.unit_name = units[1]
 
     def _process_images_array(self):
-        """Пакетная обработка изображений с автогаммой и сохранением результатов в CSV"""
-        import csv
-        from datetime import datetime
+        """Пакетная обработка изображений с выбором методов предобработки"""
 
+        # ===== ШАГ 1: Выбор методов через диалог с чекбоксами =====
+        dialog = PreprocessMethodDialog(self)
+        if dialog.exec() != QDialog.Accepted:
+            return
+
+        selected_methods = dialog.get_selected_methods()
+
+        # ===== ШАГ 2: Выбор файлов =====
         filenames, _ = QFileDialog.getOpenFileNames(
-            self,
-            'Select Images',
-            os.getcwd(),
+            self, 'Select Images', os.getcwd(),
             'Image Files (*.png *.jpg *.bmp)'
         )
-
         if not filenames:
             return
 
         csv_path, _ = QFileDialog.getSaveFileName(
-            self,
-            'Save Results',
+            self, 'Save Results',
             os.path.join(os.getcwd(), f'results_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'),
             'CSV Files (*.csv)'
         )
-
         if not csv_path:
             return
 
-        progress = QProgressDialog('Processing images...', 'Cancel', 0, len(filenames), self)
+        total_steps = len(filenames) * len(selected_methods)
+        progress = QProgressDialog('Processing images...', 'Cancel', 0, total_steps, self)
         progress.setWindowModality(Qt.WindowModal)
         progress.setWindowTitle('Batch Processing')
 
         results = []
+        step = 0
 
         for i, filename in enumerate(filenames):
             if progress.wasCanceled():
                 break
 
-            progress.setLabelText(f'Processing {os.path.basename(filename)}...')
-            progress.setValue(i)
+            for method in selected_methods:
+                if progress.wasCanceled():
+                    break
 
-            # Загрузка изображения
-            temp_image = Image(filename)
+                progress.setLabelText(
+                    f'Processing {os.path.basename(filename)}\n'
+                    f'Method: {method.value}'
+                )
+                progress.setValue(step)
+                step += 1
 
-            gamma = temp_image.calculate_gamma_from_contour_graph_with_log_deriv(max_gamma=15, modal_window=None)
-            temp_image = temp_image.apply_gamma(gamma)
+                # Каждый метод работает с чистой копией изображения
+                temp_image = Image(filename)
+                gamma = 1.0
 
-            # Расчет площади
-            sum_of_areas, areas_units = temp_image.calculate_area(self.unit_factor)
-            contours = temp_image.get_contours()
+                # ===== ШАГ 3: Применение метода =====
+                if method == PreprocessMethod.GAMMA_BY_AREA:
+                    gamma = temp_image.calculate_gamma_from_contour_graph_with_log_deriv(
+                        max_gamma=15, modal_window=None
+                    )
+                    temp_image = temp_image.apply_gamma(gamma)
 
-            results.append({
-                'filename': os.path.basename(filename),
-                'gamma': gamma,
-                'area_px': sum_of_areas,
-                'area_units': areas_units if self.unit_factor else 0,
-                'unit_name': self.unit_name or 'N/A',
-                'contours_count': len(contours)
-            })
+                elif method == PreprocessMethod.GAMMA_BY_PERCENTILE:
+                    gamma = temp_image.gamma_from_high_percentile(
+                        target=self.second_parameter
+                    )
+                    temp_image = temp_image.apply_gamma(gamma)
 
-        progress.setValue(len(filenames))
+                elif method == PreprocessMethod.STRETCH_BRIGHT:
+                    temp_image = temp_image.stretch_bright_region(
+                        threshold=self.first_parameter
+                    )
+                    gamma = 0.0
+
+
+                elif method == PreprocessMethod.NO_PREPROCESSING:
+                    gamma = 1.0
+
+                # ===== ШАГ 4: Расчёт площади =====
+                sum_of_areas, areas_units = temp_image.calculate_area(self.unit_factor)
+                contours = temp_image.get_contours()
+
+                results.append({
+                    'filename': os.path.basename(filename),
+                    'method': method.value,
+                    'gamma': round(gamma, 4),
+                    'area_px': sum_of_areas,
+                    'area_units': round(areas_units, 4) if self.unit_factor else 0,
+                    'unit_name': self.unit_name or 'N/A',
+                    'contours_count': len(contours)
+                })
+
+        progress.setValue(total_steps)
 
         if results:
             with open(csv_path, 'w', newline='', encoding='utf-8') as csvfile:
-                fieldnames = ['filename', 'gamma', 'area_px', 'area_units', 'unit_name', 'contours_count']
+                fieldnames = ['filename', 'method', 'gamma', 'area_px',
+                              'area_units', 'unit_name', 'contours_count']
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-
                 writer.writeheader()
                 writer.writerows(results)
 
+            methods_str = '\n'.join(f'  • {m.value}' for m in selected_methods)
             QMessageBox.information(
-                self,
-                'Success',
-                f'Processed {len(results)} images\nResults saved to:\n{csv_path}'
+                self, 'Success',
+                f'Processed {len(filenames)} images × {len(selected_methods)} methods\n'
+                f'Total rows: {len(results)}\n\n'
+                f'Methods used:\n{methods_str}\n\n'
+                f'Results saved to:\n{csv_path}'
             )
 
     def _calculate_area(self):

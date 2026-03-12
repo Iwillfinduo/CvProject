@@ -1,11 +1,19 @@
 import os
 import sys
+from enum import Enum
 
 import cv2 as cv
 import numpy as np
 import pytesseract
 from PySide6.QtGui import QImage, QPixmap
-from scipy.signal import savgol_filter
+#from scipy.signal import savgol_filter
+
+
+class PreprocessMethod(Enum):
+    GAMMA_BY_AREA = "Auto Gamma by area (contour graph)"
+    GAMMA_BY_PERCENTILE = "Auto Gamma by percentile"
+    STRETCH_BRIGHT = "Stretch bright region"
+    NO_PREPROCESSING = "No preprocessing (raw image)"
 
 
 class OpenCVToQtAdapter:
