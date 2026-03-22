@@ -2,8 +2,8 @@ from PySide6.QtCore import (QCoreApplication, QMetaObject, QRect,
                             Qt)
 from PySide6.QtGui import (QAction)
 from PySide6.QtWidgets import (QHBoxLayout, QLabel, QMenu, QMenuBar, QPushButton, QSizePolicy,
-                               QSlider, QStatusBar, QVBoxLayout, QWidget, QSpacerItem, QComboBox, QDialogButtonBox)
-
+                               QSlider, QStatusBar, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QSpacerItem, QComboBox, QDialogButtonBox)
 
 
 class Ui_MainWindow(object):
@@ -29,6 +29,8 @@ class Ui_MainWindow(object):
         self.actionAbout.setObjectName(u"actionAbout")
         self.actionAuto_Gamma_by_percentile = QAction(MainWindow)
         self.actionAuto_Gamma_by_percentile.setObjectName(u"actionAuto_Gamma_by_percentile")
+        self.actionChange_Language = QAction(MainWindow)
+        self.actionChange_Language.setObjectName(u"actionChange_Language")
         self.centralwidget = QWidget(MainWindow)
         self.centralwidget.setObjectName(u"centralwidget")
         self.verticalLayout_2 = QVBoxLayout(self.centralwidget)
@@ -89,7 +91,7 @@ class Ui_MainWindow(object):
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QMenuBar(MainWindow)
         self.menubar.setObjectName(u"menubar")
-        self.menubar.setGeometry(QRect(0, 0, 780, 23))
+        self.menubar.setGeometry(QRect(0, 0, 780, 33))
         self.menuFunctions = QMenu(self.menubar)
         self.menuFunctions.setObjectName(u"menuFunctions")
         self.menuFIle = QMenu(self.menubar)
@@ -115,6 +117,7 @@ class Ui_MainWindow(object):
         self.menuFIle.addSeparator()
         self.menuFIle.addAction(self.actionConnect_cti_file)
         self.menuHelp.addAction(self.actionAbout)
+        self.menuHelp.addAction(self.actionChange_Language)
 
         self.retranslateUi(MainWindow)
 
@@ -135,6 +138,7 @@ class Ui_MainWindow(object):
         self.actionAbout.setText(QCoreApplication.translate("MainWindow", u"About", None))
         self.actionAuto_Gamma_by_percentile.setText(
             QCoreApplication.translate("MainWindow", u"Auto Gamma by percentile", None))
+        self.actionChange_Language.setText(QCoreApplication.translate("MainWindow", u"Change Language", None))
         self.pixmap_label.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
         self.label_2.setText("")
         self.pushButton.setText(QCoreApplication.translate("MainWindow", u"Strech Bright Region", None))

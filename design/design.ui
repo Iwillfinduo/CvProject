@@ -102,7 +102,7 @@
      <x>0</x>
      <y>0</y>
      <width>780</width>
-     <height>23</height>
+     <height>33</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFunctions">
@@ -130,6 +130,7 @@
      <string>Help</string>
     </property>
     <addaction name="actionAbout"/>
+    <addaction name="actionChange_Language"/>
    </widget>
    <addaction name="menuFIle"/>
    <addaction name="menuFunctions"/>
@@ -179,6 +180,11 @@
   <action name="actionAuto_Gamma_by_percentile">
    <property name="text">
     <string>Auto Gamma by percentile</string>
+   </property>
+  </action>
+  <action name="actionChange_Language">
+   <property name="text">
+    <string>Change Language</string>
    </property>
   </action>
  </widget>

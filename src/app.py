@@ -3,7 +3,7 @@ import sys
 import csv
 from datetime import datetime
 
-from PySide6.QtCore import Qt, Slot, QTimer, QSize
+from PySide6.QtCore import Qt, Slot, QTimer, QSize, QTranslator, QCoreApplication
 from PySide6.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QProgressDialog, QDialog
 from PySide6.QtMultimedia import QMediaDevices
 
@@ -44,7 +44,13 @@ class ImageViewer(QMainWindow):
         # UI
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
+        self._translator = QTranslator()
+        self._lang = "en"
+
+
+        self.ui.actionChange_Language.triggered.connect(self._toggle_language)
         self.ui.gamma_label.setText(str(self.gamma))
+
         self.ui.gamma_slider.setMaximum(150)
         self.ui.gamma_slider.valueChanged.connect(self._slider_move)
         self.ui.actionOpen.triggered.connect(self._open_file)
@@ -72,7 +78,40 @@ class ImageViewer(QMainWindow):
 
 
     def _show_about(self):
-        QMessageBox.about(None,"About", 'Author: Zhilin Rostislav Romanovich, MIT Licence')
+        QMessageBox.about(
+            self,
+            self.tr("About"),
+            self.tr("Author: Zhilin Rostislav Romanovich, ©South Ural State University."),
+        )
+
+    # ==================== Перевод ====================
+    def _toggle_language(self):
+        # примитивный toggle en <-> ru
+        new_lang = "ru" if self._lang != "ru" else "en"
+        self._set_language(new_lang)
+
+    def _set_language(self, lang: str):
+        app = QCoreApplication.instance()
+
+        # снять предыдущий переводчик
+        app.removeTranslator(self._translator)
+        self._translator = QTranslator()
+
+        if lang == "ru":
+            ok = self._translator.load("../translations/ru_RU.qm")
+            if not ok:
+                QMessageBox.warning(
+                    self,
+                    "Translation",
+                    "Не найден translations/ru_RU.qm."
+                )
+                return
+            app.installTranslator(self._translator)
+
+        self._lang = lang
+
+        self.ui.retranslateUi(self)
+
 
 
     # ==================== Обработка контуров ====================
@@ -440,15 +479,29 @@ class ImageViewer(QMainWindow):
             message_box.setIcon(QMessageBox.Information)
             message_box.setWindowTitle('Area Calculation')
             message_box.setText(
-                f'Calculated_area: {areas_units:.4f} {self.unit_name}\n'
-                f'{sum_of_areas} px\nAmount_of_contours {len(contours)}'
+                self.tr(
+                    "Calculated area: {area:.4f} {unit}\n"
+                    "{area_px} px\n"
+                    "Amount of contours: {contours}"
+                ).format(
+                    area=areas_units,
+                    unit=self.unit_name,
+                    area_px=sum_of_areas,
+                    contours=len(contours),
+                )
             )
         elif sum_of_areas >= 0:
             message_box.setIcon(QMessageBox.Information)
             message_box.setWindowTitle('Area Calculation')
             message_box.setText(
-                f'Area are not calibrated,\n{sum_of_areas} px\n'
-                f'Amount_of_contours {len(contours)}'
+                self.tr(
+                    "Area is not calibrated.\n"
+                    "{area_px} px\n"
+                    "Amount of contours: {contours}"
+                ).format(
+                    area_px=sum_of_areas,
+                    contours=len(contours),
+                )
             )
         else:
             return
