@@ -111,6 +111,7 @@ class ImageViewer(QMainWindow):
         self._lang = lang
 
         self.ui.retranslateUi(self)
+        self.display_image()
 
 
 
