@@ -469,12 +469,15 @@ class ImageViewer(QMainWindow):
 
     def _calculate_area(self):
         message_box = QMessageBox()
-        contours = self.image.get_contours()
 
-        if self.processed_image is None:
-            sum_of_areas, areas_units = self.image.calculate_area(self.unit_factor)
-        else:
+        if self.processed_image is not None:
+            self.processed_image.apply_contours()
+            contours = self.processed_image.get_contours()
             sum_of_areas, areas_units = self.processed_image.calculate_area(self.unit_factor)
+        else:
+            self.image.apply_contours()
+            contours = self.image.get_contours()
+            sum_of_areas, areas_units = self.image.calculate_area(self.unit_factor)
 
         if areas_units > 0:
             message_box.setIcon(QMessageBox.Information)
