@@ -2,6 +2,7 @@ import os
 import sys
 import csv
 from datetime import datetime
+from pathlib import Path
 
 from PySide6.QtCore import Qt, Slot, QTimer, QSize, QTranslator, QCoreApplication
 from PySide6.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QProgressDialog, QDialog
@@ -44,7 +45,7 @@ class ImageViewer(QMainWindow):
         # UI
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
-        self._translator = QTranslator()
+        self._translators = []
         self._lang = "en"
 
 
@@ -93,23 +94,29 @@ class ImageViewer(QMainWindow):
     def _set_language(self, lang: str):
         app = QCoreApplication.instance()
 
-        # снять предыдущий переводчик
-        app.removeTranslator(self._translator)
-        self._translator = QTranslator()
+        for translator in self._translators:
+            app.removeTranslator(translator)
+        self._translators.clear()
 
-        if lang == "ru":
-            ok = self._translator.load("../translations/ru_RU.qm")
-            if not ok:
+        if lang != "en":
+            translations_dir = Path(__file__).parent.parent / "translations"
+            # Ищем все .qm файлы для нужного языка: *_ru.qm, ru_RU.qm и т.д.
+            qm_files = list(translations_dir.glob(f"*{lang}*.qm"))
+
+            if not qm_files:
                 QMessageBox.warning(
-                    self,
-                    "Translation",
-                    "Не найден translations/ru_RU.qm."
+                    self, "Translation",
+                    f"Файлы перевода для '{lang}' не найдены в {translations_dir}"
                 )
                 return
-            app.installTranslator(self._translator)
+
+            for qm_file in qm_files:
+                translator = QTranslator()
+                if translator.load(str(qm_file)):
+                    app.installTranslator(translator)
+                    self._translators.append(translator)
 
         self._lang = lang
-
         self.ui.retranslateUi(self)
         self.display_image()
 

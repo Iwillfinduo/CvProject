@@ -134,7 +134,7 @@ class Image:
             if modal_window is not None:
                 modal_window.setValue(num * 100 / ((max_gamma - min_gamma) / 0.1))
             gamma += 0.1
-        return min_gamma + 0.1 * (OpenCVToQtAdapter.find_foot_of_drop(areas, stability_threshold=0.1))
+        return min_gamma + 0.1 * (OpenCVToQtAdapter.find_foot_of_drop(areas, stability_threshold=0.1)) + 2.0
 
     # DEPRECATED
     def calculate_gamma_from_contour_graph(self, min_gamma=0.3, max_gamma=10.0, area_difference_coefficient=20,

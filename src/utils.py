@@ -13,7 +13,7 @@ class PreprocessMethod(Enum):
     GAMMA_BY_AREA = "Auto Gamma by area (contour graph)"
     GAMMA_BY_PERCENTILE = "Auto Gamma by percentile"
     STRETCH_BRIGHT = "Stretch bright region"
-    NO_PREPROCESSING = "No preprocessing (raw image)"
+    #NO_PREPROCESSING = "No preprocessing (raw image)"
 
 
 class OpenCVToQtAdapter:
