@@ -5,7 +5,6 @@ from PySide6.QtWidgets import (QHBoxLayout, QLabel, QMenu, QMenuBar, QPushButton
                                QSlider, QStatusBar, QVBoxLayout, QWidget)
 from PySide6.QtWidgets import (QSpacerItem, QComboBox, QDialogButtonBox)
 
-
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
@@ -17,8 +16,6 @@ class Ui_MainWindow(object):
         self.actionOpen.setObjectName(u"actionOpen")
         self.actionOpen_Calibration_Image = QAction(MainWindow)
         self.actionOpen_Calibration_Image.setObjectName(u"actionOpen_Calibration_Image")
-        self.actionAuto_Gamma_by_area = QAction(MainWindow)
-        self.actionAuto_Gamma_by_area.setObjectName(u"actionAuto_Gamma_by_area")
         self.actionConnect_Camera = QAction(MainWindow)
         self.actionConnect_Camera.setObjectName(u"actionConnect_Camera")
         self.actionConnect_cti_file = QAction(MainWindow)
@@ -27,10 +24,14 @@ class Ui_MainWindow(object):
         self.actionProcess_Image_Array.setObjectName(u"actionProcess_Image_Array")
         self.actionAbout = QAction(MainWindow)
         self.actionAbout.setObjectName(u"actionAbout")
-        self.actionAuto_Gamma_by_percentile = QAction(MainWindow)
-        self.actionAuto_Gamma_by_percentile.setObjectName(u"actionAuto_Gamma_by_percentile")
         self.actionChange_Language = QAction(MainWindow)
         self.actionChange_Language.setObjectName(u"actionChange_Language")
+        self.actionGamma_by_area = QAction(MainWindow)
+        self.actionGamma_by_area.setObjectName(u"actionGamma_by_area")
+        self.actionGamma_by_percentile = QAction(MainWindow)
+        self.actionGamma_by_percentile.setObjectName(u"actionGamma_by_percentile")
+        self.actionSet_Calibration = QAction(MainWindow)
+        self.actionSet_Calibration.setObjectName(u"actionSet_Calibration")
         self.centralwidget = QWidget(MainWindow)
         self.centralwidget.setObjectName(u"centralwidget")
         self.verticalLayout_2 = QVBoxLayout(self.centralwidget)
@@ -57,6 +58,7 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_2.addWidget(self.pushButton)
 
+
         self.verticalLayout.addLayout(self.horizontalLayout_2)
 
         self.horizontalLayout_5 = QHBoxLayout()
@@ -72,6 +74,7 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_5.addWidget(self.gamma_slider)
 
+
         self.verticalLayout.addLayout(self.horizontalLayout_5)
 
         self.horizontalLayout_3 = QHBoxLayout()
@@ -84,33 +87,33 @@ class Ui_MainWindow(object):
 
         self.horizontalLayout_3.addWidget(self.apply_countour_button)
 
+
         self.verticalLayout.addLayout(self.horizontalLayout_3)
+
 
         self.verticalLayout_2.addLayout(self.verticalLayout)
 
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QMenuBar(MainWindow)
         self.menubar.setObjectName(u"menubar")
-        self.menubar.setGeometry(QRect(0, 0, 780, 33))
-        self.menuFunctions = QMenu(self.menubar)
-        self.menuFunctions.setObjectName(u"menuFunctions")
+        self.menubar.setGeometry(QRect(0, 0, 780, 23))
         self.menuFIle = QMenu(self.menubar)
         self.menuFIle.setObjectName(u"menuFIle")
         self.menuHelp = QMenu(self.menubar)
         self.menuHelp.setObjectName(u"menuHelp")
+        self.menuGamma = QMenu(self.menubar)
+        self.menuGamma.setObjectName(u"menuGamma")
+        self.menuFunctions = QMenu(self.menubar)
+        self.menuFunctions.setObjectName(u"menuFunctions")
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QStatusBar(MainWindow)
         self.statusbar.setObjectName(u"statusbar")
         MainWindow.setStatusBar(self.statusbar)
 
         self.menubar.addAction(self.menuFIle.menuAction())
+        self.menubar.addAction(self.menuGamma.menuAction())
         self.menubar.addAction(self.menuFunctions.menuAction())
         self.menubar.addAction(self.menuHelp.menuAction())
-        self.menuFunctions.addAction(self.actionCalculate_the_area)
-        self.menuFunctions.addSeparator()
-        self.menuFunctions.addAction(self.actionAuto_Gamma_by_area)
-        self.menuFunctions.addAction(self.actionProcess_Image_Array)
-        self.menuFunctions.addAction(self.actionAuto_Gamma_by_percentile)
         self.menuFIle.addAction(self.actionOpen)
         self.menuFIle.addAction(self.actionOpen_Calibration_Image)
         self.menuFIle.addAction(self.actionConnect_Camera)
@@ -118,37 +121,42 @@ class Ui_MainWindow(object):
         self.menuFIle.addAction(self.actionConnect_cti_file)
         self.menuHelp.addAction(self.actionAbout)
         self.menuHelp.addAction(self.actionChange_Language)
+        self.menuGamma.addAction(self.actionGamma_by_area)
+        self.menuGamma.addAction(self.actionGamma_by_percentile)
+        self.menuFunctions.addAction(self.actionCalculate_the_area)
+        self.menuFunctions.addSeparator()
+        self.menuFunctions.addAction(self.actionProcess_Image_Array)
+        self.menuFunctions.addAction(self.actionSet_Calibration)
 
         self.retranslateUi(MainWindow)
 
         QMetaObject.connectSlotsByName(MainWindow)
-
     # setupUi
 
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Area Calculator", None))
         self.actionCalculate_the_area.setText(QCoreApplication.translate("MainWindow", u"Calculate the area", None))
         self.actionOpen.setText(QCoreApplication.translate("MainWindow", u"Open", None))
-        self.actionOpen_Calibration_Image.setText(
-            QCoreApplication.translate("MainWindow", u"Open Calibration Image", None))
-        self.actionAuto_Gamma_by_area.setText(QCoreApplication.translate("MainWindow", u"Auto Gamma by area", None))
+        self.actionOpen_Calibration_Image.setText(QCoreApplication.translate("MainWindow", u"Open Calibration Image", None))
         self.actionConnect_Camera.setText(QCoreApplication.translate("MainWindow", u"Connect Basic Camera", None))
         self.actionConnect_cti_file.setText(QCoreApplication.translate("MainWindow", u"Connect .cti file", None))
         self.actionProcess_Image_Array.setText(QCoreApplication.translate("MainWindow", u"Process Image Array", None))
         self.actionAbout.setText(QCoreApplication.translate("MainWindow", u"About", None))
-        self.actionAuto_Gamma_by_percentile.setText(
-            QCoreApplication.translate("MainWindow", u"Auto Gamma by percentile", None))
         self.actionChange_Language.setText(QCoreApplication.translate("MainWindow", u"Change Language", None))
+        self.actionGamma_by_area.setText(QCoreApplication.translate("MainWindow", u"Gamma by area", None))
+        self.actionGamma_by_percentile.setText(QCoreApplication.translate("MainWindow", u"Gamma by percentile", None))
+        self.actionSet_Calibration.setText(QCoreApplication.translate("MainWindow", u"Set Calibration", None))
         self.pixmap_label.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
         self.label_2.setText("")
         self.pushButton.setText(QCoreApplication.translate("MainWindow", u"Strech Bright Region", None))
         self.gamma_label.setText(QCoreApplication.translate("MainWindow", u"TextLabel", None))
         self.apply_countour_button.setText(QCoreApplication.translate("MainWindow", u"Apply Contour", None))
-        self.menuFunctions.setTitle(QCoreApplication.translate("MainWindow", u"Functions", None))
         self.menuFIle.setTitle(QCoreApplication.translate("MainWindow", u"FIle", None))
         self.menuHelp.setTitle(QCoreApplication.translate("MainWindow", u"Help", None))
-
+        self.menuGamma.setTitle(QCoreApplication.translate("MainWindow", u"Gamma", None))
+        self.menuFunctions.setTitle(QCoreApplication.translate("MainWindow", u"Functions", None))
     # retranslateUi
+
 
     def add_snap_button(self):
         self.horizontalLayout_6 = QHBoxLayout()

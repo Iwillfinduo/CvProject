@@ -1,7 +1,10 @@
+import json
+import os
+
 from PySide6.QtCore import (QCoreApplication, QMetaObject, Qt)
 from PySide6.QtWidgets import (QHBoxLayout, QLabel, QPushButton, QSizePolicy,
                                QVBoxLayout, QSpacerItem, QComboBox, QDialogButtonBox,
-                               QDialog, QCheckBox, QGroupBox, QMessageBox)
+                               QDialog, QCheckBox, QGroupBox, QMessageBox, QDoubleSpinBox)
 
 from utils import PreprocessMethod
 
@@ -141,7 +144,6 @@ class PreprocessMethodDialog(QDialog):
         self._group_box.setTitle(QCoreApplication.translate(
             "PreprocessMethodDialog", "Preprocessing Methods", None))
 
-
         for method, cb in self._checkboxes.items():
             cb.setText(QCoreApplication.translate(
                 "PreprocessMethodDialog", method.value, None))
@@ -183,3 +185,98 @@ class PreprocessMethodDialog(QDialog):
     def get_selected_methods(self) -> list[PreprocessMethod]:
         """Возвращает список выбранных методов после закрытия диалога"""
         return self._selected_methods
+
+
+class ChooseCalibrationDialog(QDialog):
+    """Диалог выбора готовой калибровки микроскопа или ввода своей"""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Настройка масштаба (Калибровка)")
+        self.setMinimumWidth(350)
+
+        self.presets = self._load_config()
+        self.unit_factor = 1.0
+        self.unit_name = "мкм"
+
+        self._init_ui()
+
+    def _load_config(self) -> dict:
+        """Проверяет наличие JSON конфига. Если его нет — создает, если есть — читает."""
+        config_file = "calibration_config.json"
+
+        default_presets = {
+            "Olympus 5x (1.38 мкм/px)": 1.380,
+            "Olympus 10x (0.69 мкм/px)": 0.690,
+            "Olympus 50x (0.138 мкм/px)": 0.138,
+            "Olympus 100x (0.069 мкм/px)": 0.069
+        }
+
+        if not os.path.exists(config_file):
+            try:
+                with open(config_file, "w", encoding="utf-8") as f:
+                    json.dump(default_presets, f, indent=4, ensure_ascii=False)
+                return default_presets
+            except Exception as e:
+                print(f"Ошибка при создании конфига: {e}")
+                return default_presets
+        else:
+            try:
+                with open(config_file, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except Exception as e:
+                print(f"Ошибка при чтении конфига: {e}")
+                return default_presets
+
+    def _init_ui(self):
+        layout = QVBoxLayout(self)
+
+        layout.addWidget(QLabel("Выберите увеличение микроскопа\n"
+                                "или введите свой масштаб вручную:"))
+
+        self.combo_box = QComboBox()
+        for text, factor in self.presets.items():
+            self.combo_box.addItem(text, factor)
+        self.combo_box.addItem("Ввести свой вариант...", "custom")
+
+        self.combo_box.setCurrentIndex(1)
+        self.combo_box.currentIndexChanged.connect(self._on_combo_changed)
+        layout.addWidget(self.combo_box)
+
+        self.custom_layout = QHBoxLayout()
+        self.custom_layout.addWidget(QLabel("Коэффициент:"))
+
+        self.spin_box = QDoubleSpinBox()
+        self.spin_box.setDecimals(4)  # 4 знака после запятой для точности
+        self.spin_box.setRange(0.0001, 1000.0)
+        self.spin_box.setValue(1.0)
+        self.spin_box.setEnabled(False)
+        self.custom_layout.addWidget(self.spin_box)
+
+        self.custom_layout.addWidget(QLabel("мкм/px"))
+        layout.addLayout(self.custom_layout)
+
+        self.button_box = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
+        self.button_box.accepted.connect(self._on_accept)
+        self.button_box.rejected.connect(self.reject)
+        layout.addWidget(self.button_box)
+
+    def _on_combo_changed(self):
+        """Разблокирует поле ввода, если выбран 'Свой вариант...'"""
+        is_custom = self.combo_box.currentData() == "custom"
+        self.spin_box.setEnabled(is_custom)
+
+    def _on_accept(self):
+        data = self.combo_box.currentData()
+        if data == "custom":
+            self.unit_factor = self.spin_box.value()
+        else:
+            self.unit_factor = float(data)
+
+        self.accept()
+
+    def get_calibration_data(self):
+        """Возвращает кортеж: (множитель масштаба, название единицы измерения)"""
+        return self.unit_factor, self.unit_name

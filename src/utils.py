@@ -6,14 +6,16 @@ import cv2 as cv
 import numpy as np
 import pytesseract
 from PySide6.QtGui import QImage, QPixmap
-#from scipy.signal import savgol_filter
+
+
+# from scipy.signal import savgol_filter
 
 
 class PreprocessMethod(Enum):
     GAMMA_BY_AREA = "Auto Gamma by area (contour graph)"
     GAMMA_BY_PERCENTILE = "Auto Gamma by percentile"
     STRETCH_BRIGHT = "Stretch bright region"
-    #NO_PREPROCESSING = "No preprocessing (raw image)"
+    # NO_PREPROCESSING = "No preprocessing (raw image)"
 
 
 class OpenCVToQtAdapter:
@@ -123,7 +125,7 @@ class OpenCVToQtAdapter:
         stretched = np.clip((gray - threshold) / (1.0 - threshold), 0, 1)
         return (stretched * 255).astype(np.uint8)
 
-    #Deprecated
+    # Deprecated
     @staticmethod
     def find_std_deviation(y, window=5):
         std_dev = []
@@ -140,7 +142,6 @@ class OpenCVToQtAdapter:
         print(std_dev)
 
         return max_std_index + window
-
 
     @staticmethod
     def find_foot_of_drop(areas, stability_threshold=0.02):

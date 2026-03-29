@@ -10,7 +10,7 @@ from PySide6.QtMultimedia import QMediaDevices
 
 from ObjectClasses import Image, VideoThread, HikrobotThread
 from ui import Ui_MainWindow
-from dialogs import ChooseCameraDialog, PreprocessMethodDialog
+from dialogs import ChooseCameraDialog, PreprocessMethodDialog, ChooseCalibrationDialog
 from utils import OpenCVToQtAdapter, PreprocessMethod
 
 filename = 'placeholder.png'
@@ -59,8 +59,9 @@ class ImageViewer(QMainWindow):
         self.ui.actionConnect_Camera.triggered.connect(self._connect_video_thread)
         self.ui.actionOpen_Calibration_Image.triggered.connect(self._calibrate_area)
         self.ui.pushButton.toggled.connect(self._apply_first_auto_gamma_toggled)
-        self.ui.actionAuto_Gamma_by_percentile.triggered.connect(self._apply_second_auto_gamma)
-        self.ui.actionAuto_Gamma_by_area.triggered.connect(self._auto_gamma_by_area)
+        self.ui.actionGamma_by_percentile.triggered.connect(self._apply_second_auto_gamma)
+        self.ui.actionGamma_by_area.triggered.connect(self._auto_gamma_by_area)
+        self.ui.actionSet_Calibration.triggered.connect(self._process_calibration_dialog)
         self.ui.pixmap_label.setMinimumSize(QSize(200, 200))
         self.ui.actionConnect_cti_file.triggered.connect(self._connect_cti_file)
         self.ui.actionProcess_Image_Array.triggered.connect(self._process_images_array)
@@ -120,6 +121,25 @@ class ImageViewer(QMainWindow):
         self.ui.retranslateUi(self)
         self.display_image()
 
+
+    #  ==================== Калибровка ====================
+    def _process_calibration_dialog(self):
+        dialog = ChooseCalibrationDialog(self)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            factor, unit_name = dialog.get_calibration_data()
+            self.unit_factor = factor
+            self.unit_name = unit_name
+
+
+    def _calibrate_area(self):
+        filename = QFileDialog.getOpenFileName(
+            self, 'Open file', os.getcwd(),
+            'Image Files (*.png *.jpg *.bmp)'
+        )
+        if filename[0]:
+            length, units = OpenCVToQtAdapter.process_calibration_image(filename[0])
+            self.unit_factor = int(units[0]) / length
+            self.unit_name = units[1]
 
 
     # ==================== Обработка контуров ====================
@@ -355,15 +375,6 @@ class ImageViewer(QMainWindow):
             self.processed_image = None
         self.display_image()
 
-    def _calibrate_area(self):
-        filename = QFileDialog.getOpenFileName(
-            self, 'Open file', os.getcwd(),
-            'Image Files (*.png *.jpg *.bmp)'
-        )
-        if filename[0]:
-            length, units = OpenCVToQtAdapter.process_calibration_image(filename[0])
-            self.unit_factor = int(units[0]) / length
-            self.unit_name = units[1]
 
     def _process_images_array(self):
         """Пакетная обработка изображений с выбором методов предобработки"""
