@@ -76,7 +76,7 @@ class Image:
             processed_image = self.image
         else:
             processed_image = self.processed_image
-        _, temp_image = cv.threshold(processed_image, 0., 10., cv.THRESH_OTSU)
+        _, temp_image = cv.threshold(processed_image, 0., 255., cv.THRESH_OTSU)
         contours, hierarchy = cv.findContours(temp_image, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
         # print(len(contours))
         self.contours = contours
